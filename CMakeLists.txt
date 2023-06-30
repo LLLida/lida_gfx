@@ -15,13 +15,13 @@ set_target_properties(lida_gfx PROPERTIES
 find_package(SDL2 REQUIRED)
 target_link_libraries(lida_gfx SDL2::SDL2)
 
-set(ENABLE_ASAN 0)
+set(ENABLE_ASAN 1)
 set(ENABLE_STATIC_ANALYZER 0)
 
 # enable all warnings from compiler
 target_compile_options(lida_gfx PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>                         # MSVC
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic> # g++ or clang
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-unused-function> # g++ or clang
 )
 
 if (ENABLE_ASAN)

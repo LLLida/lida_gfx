@@ -233,7 +233,27 @@ typedef struct {
 
 } GFX_Binding;
 
-typedef uint32_t GFX_Descriptor_Set;
+typedef uint64_t GFX_Descriptor_Set;
+
+typedef struct {
+
+  const char* vertex_shader;
+  const char* fragment_shader;
+  // TODO: primitive topology
+  // TODO: viewport
+  // TODO: scissor
+  // TODO: polygonMode
+  // TODO: cullMode
+  // TODO: blend_logic
+  // TODO: attachments
+  GFX_Render_Pass* render_pass;
+  // uint32_t subpass; // no support for subpasses yet
+
+} GFX_Pipeline_Desc;
+
+typedef struct {
+  char data[16];
+} GFX_Pipeline;
 
 typedef struct {
   char data[512];
@@ -260,6 +280,9 @@ int gfx_is_initialised();
 
 void gfx_wait_idle_gpu();
 
+int gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX_Pipeline_Desc* descs);
+void gfx_destroy_pipeline(GFX_Pipeline* pipeline);
+
 typedef struct SDL_Window SDL_Window;
 
 /**
@@ -283,6 +306,8 @@ int gfx_swap_buffers(GFX_Window* window);
  */
 int gfx_submit_and_present(GFX_Window* window);
 
+GFX_Render_Pass* gfx_get_main_pass(GFX_Window* window);
+
 void gfx_begin_main_pass(GFX_Window* window);
 
 /**
@@ -291,6 +316,10 @@ void gfx_begin_main_pass(GFX_Window* window);
 GFX_Render_Pass* gfx_render_pass(const GFX_Attachment_Info* attachments, uint32_t count);
 
 void gfx_end_render_pass();
+
+void gfx_bind_pipeline(GFX_Pipeline* pipeline);
+
+void gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance);
 
 #ifdef __cplusplus
 }

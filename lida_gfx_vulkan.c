@@ -1,6 +1,6 @@
 /*
   lida_gfx_vulkan.c - the Vulkan abstraction layer for lida_gfx
- */
+*/
 
 /* --Configuration */
 
@@ -187,20 +187,20 @@ static PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties
   X(vkCmdDebugMarkerBeginEXT);                          \
   X(vkCmdDebugMarkerEndEXT);                            \
   X(vkCmdDebugMarkerInsertEXT);                         \
-  X(vkDebugMarkerSetObjectNameEXT);                             \
-  X(vkDebugMarkerSetObjectTagEXT);                              \
-  X(vkCreateDebugReportCallbackEXT);                            \
-  X(vkDebugReportMessageEXT);                                   \
-  X(vkDestroyDebugReportCallbackEXT);                           \
-  X(vkDestroySurfaceKHR);                                       \
-  X(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);                 \
-  X(vkGetPhysicalDeviceSurfaceFormatsKHR);                      \
-  X(vkGetPhysicalDeviceSurfacePresentModesKHR);                 \
-  X(vkGetPhysicalDeviceSurfaceSupportKHR);                      \
-  X(vkAcquireNextImageKHR);                                     \
-  X(vkCreateSwapchainKHR);                                      \
-  X(vkDestroySwapchainKHR);                                     \
-  X(vkGetSwapchainImagesKHR);                                   \
+  X(vkDebugMarkerSetObjectNameEXT);                     \
+  X(vkDebugMarkerSetObjectTagEXT);                      \
+  X(vkCreateDebugReportCallbackEXT);                    \
+  X(vkDebugReportMessageEXT);                           \
+  X(vkDestroyDebugReportCallbackEXT);                   \
+  X(vkDestroySurfaceKHR);                               \
+  X(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);         \
+  X(vkGetPhysicalDeviceSurfaceFormatsKHR);              \
+  X(vkGetPhysicalDeviceSurfacePresentModesKHR);         \
+  X(vkGetPhysicalDeviceSurfaceSupportKHR);              \
+  X(vkAcquireNextImageKHR);                             \
+  X(vkCreateSwapchainKHR);                              \
+  X(vkDestroySwapchainKHR);                             \
+  X(vkGetSwapchainImagesKHR);                           \
   X(vkQueuePresentKHR)
 
 // define Vulkan API functions
@@ -212,14 +212,14 @@ FOR_ALL_FUNCTIONS();
 /* --platform specific stuff */
 
 #ifdef _WIN32
-  typedef const char* LPCSTR;
-  typedef struct HINSTANCE__* HINSTANCE;
-  typedef HINSTANCE HMODULE;
-  #ifdef _WIN64
-  typedef __int64 (__stdcall* FARPROC)(void);
-  #else
-  typedef int (__stdcall* FARPROC)(void);
-  #endif
+typedef const char* LPCSTR;
+typedef struct HINSTANCE__* HINSTANCE;
+typedef HINSTANCE HMODULE;
+#ifdef _WIN64
+typedef __int64 (__stdcall* FARPROC)(void);
+#else
+typedef int (__stdcall* FARPROC)(void);
+#endif
 #else
 # include <dlfcn.h>
 #endif
@@ -292,7 +292,7 @@ lru_cache_ith(const LRU_Cache* lru, uint32_t i)
 
    'hash_fn', 'eq_fn', 'des_fn', 'sizeof_' and 'typename' are
    necessary type information for objects to be stored.
- */
+*/
 static LRU_Cache
 lru_cache_init(uint32_t bytes, void* data, hash_function_t hash_fn, equal_function_t eq_fn, destructor_function_t des_fn, uint32_t sizeof_, const char* typename)
 {
@@ -331,7 +331,7 @@ lru_cache_init(uint32_t bytes, void* data, hash_function_t hash_fn, equal_functi
    cache if it's found and NULL otherwise.
 
    NOTE: this does not update timestamp of value in queue.
- */
+*/
 static void*
 lru_cache_search(LRU_Cache* lru, const void* obj)
 {
@@ -355,7 +355,7 @@ lru_cache_search(LRU_Cache* lru, const void* obj)
    by destroying the Least Recently Used one.
 
    'flag' is set to 1 when a new object was created. Otherwise it's set to 0.
- */
+*/
 static void*
 lru_cache_get(LRU_Cache* lru, const void* obj, int* flag)
 {
@@ -439,7 +439,7 @@ lru_cache_get(LRU_Cache* lru, const void* obj, int* flag)
 
    NOTE: destructors are called in order. Objects that were accessed
    more recently will be destroyed sooner.
- */
+*/
 static void
 lru_cache_destroy(LRU_Cache* lru)
 {
@@ -536,7 +536,7 @@ hash_string(const char* str)
 /* --global */
 
 static struct {
-  uint32_t membuf[2048];
+  uint32_t membuf[4096];
   uint32_t memptr;
   uint32_t memright;
   VkInstance instance;
@@ -601,8 +601,8 @@ pop_mem(void* ptr)
 static void*
 push_mem_right(uint32_t bytes)
 {
+  assert(g.memright >= g.memptr + ((bytes+3)>>2));
   g.memright -= (bytes+3)>>2;
-  assert(g.memright >= g.memptr);
   void* ret = &g.membuf[g.memright];
   return ret;
 }
@@ -623,75 +623,75 @@ static const unsigned int SpvOpCodeMask = 0xffff;
 static const unsigned int SpvWordCountShift = 16;
 
 typedef enum SpvSourceLanguage_ {
-    SpvSourceLanguageUnknown = 0,
-    SpvSourceLanguageESSL = 1,
-    SpvSourceLanguageGLSL = 2,
-    SpvSourceLanguageOpenCL_C = 3,
-    SpvSourceLanguageOpenCL_CPP = 4,
-    SpvSourceLanguageHLSL = 5,
-    SpvSourceLanguageMax = 0x7fffffff,
+  SpvSourceLanguageUnknown = 0,
+  SpvSourceLanguageESSL = 1,
+  SpvSourceLanguageGLSL = 2,
+  SpvSourceLanguageOpenCL_C = 3,
+  SpvSourceLanguageOpenCL_CPP = 4,
+  SpvSourceLanguageHLSL = 5,
+  SpvSourceLanguageMax = 0x7fffffff,
 } SpvSourceLanguage;
 
 typedef enum SpvExecutionModel_ {
-    SpvExecutionModelVertex = 0,
-    SpvExecutionModelTessellationControl = 1,
-    SpvExecutionModelTessellationEvaluation = 2,
-    SpvExecutionModelGeometry = 3,
-    SpvExecutionModelFragment = 4,
-    SpvExecutionModelGLCompute = 5,
-    SpvExecutionModelKernel = 6,
-    SpvExecutionModelMax = 0x7fffffff,
+  SpvExecutionModelVertex = 0,
+  SpvExecutionModelTessellationControl = 1,
+  SpvExecutionModelTessellationEvaluation = 2,
+  SpvExecutionModelGeometry = 3,
+  SpvExecutionModelFragment = 4,
+  SpvExecutionModelGLCompute = 5,
+  SpvExecutionModelKernel = 6,
+  SpvExecutionModelMax = 0x7fffffff,
 } SpvExecutionModel;
 
 typedef enum SpvAddressingModel_ {
-    SpvAddressingModelLogical = 0,
-    SpvAddressingModelPhysical32 = 1,
-    SpvAddressingModelPhysical64 = 2,
-    SpvAddressingModelMax = 0x7fffffff,
+  SpvAddressingModelLogical = 0,
+  SpvAddressingModelPhysical32 = 1,
+  SpvAddressingModelPhysical64 = 2,
+  SpvAddressingModelMax = 0x7fffffff,
 } SpvAddressingModel;
 
 typedef enum SpvMemoryModel_ {
-    SpvMemoryModelSimple = 0,
-    SpvMemoryModelGLSL450 = 1,
-    SpvMemoryModelOpenCL = 2,
-    SpvMemoryModelMax = 0x7fffffff,
+  SpvMemoryModelSimple = 0,
+  SpvMemoryModelGLSL450 = 1,
+  SpvMemoryModelOpenCL = 2,
+  SpvMemoryModelMax = 0x7fffffff,
 } SpvMemoryModel;
 
 typedef enum SpvExecutionMode_ {
-    SpvExecutionModeInvocations = 0,
-    SpvExecutionModeSpacingEqual = 1,
-    SpvExecutionModeSpacingFractionalEven = 2,
-    SpvExecutionModeSpacingFractionalOdd = 3,
-    SpvExecutionModeVertexOrderCw = 4,
-    SpvExecutionModeVertexOrderCcw = 5,
-    SpvExecutionModePixelCenterInteger = 6,
-    SpvExecutionModeOriginUpperLeft = 7,
-    SpvExecutionModeOriginLowerLeft = 8,
-    SpvExecutionModeEarlyFragmentTests = 9,
-    SpvExecutionModePointMode = 10,
-    SpvExecutionModeXfb = 11,
-    SpvExecutionModeDepthReplacing = 12,
-    SpvExecutionModeDepthGreater = 14,
-    SpvExecutionModeDepthLess = 15,
-    SpvExecutionModeDepthUnchanged = 16,
-    SpvExecutionModeLocalSize = 17,
-    SpvExecutionModeLocalSizeHint = 18,
-    SpvExecutionModeInputPoints = 19,
-    SpvExecutionModeInputLines = 20,
-    SpvExecutionModeInputLinesAdjacency = 21,
-    SpvExecutionModeTriangles = 22,
-    SpvExecutionModeInputTrianglesAdjacency = 23,
-    SpvExecutionModeQuads = 24,
-    SpvExecutionModeIsolines = 25,
-    SpvExecutionModeOutputVertices = 26,
-    SpvExecutionModeOutputPoints = 27,
-    SpvExecutionModeOutputLineStrip = 28,
-    SpvExecutionModeOutputTriangleStrip = 29,
-    SpvExecutionModeVecTypeHint = 30,
-    SpvExecutionModeContractionOff = 31,
-    SpvExecutionModePostDepthCoverage = 4446,
-    SpvExecutionModeStencilRefReplacingEXT = 5027,
-    SpvExecutionModeMax = 0x7fffffff,
+  SpvExecutionModeInvocations = 0,
+  SpvExecutionModeSpacingEqual = 1,
+  SpvExecutionModeSpacingFractionalEven = 2,
+  SpvExecutionModeSpacingFractionalOdd = 3,
+  SpvExecutionModeVertexOrderCw = 4,
+  SpvExecutionModeVertexOrderCcw = 5,
+  SpvExecutionModePixelCenterInteger = 6,
+  SpvExecutionModeOriginUpperLeft = 7,
+  SpvExecutionModeOriginLowerLeft = 8,
+  SpvExecutionModeEarlyFragmentTests = 9,
+  SpvExecutionModePointMode = 10,
+  SpvExecutionModeXfb = 11,
+  SpvExecutionModeDepthReplacing = 12,
+  SpvExecutionModeDepthGreater = 14,
+  SpvExecutionModeDepthLess = 15,
+  SpvExecutionModeDepthUnchanged = 16,
+  SpvExecutionModeLocalSize = 17,
+  SpvExecutionModeLocalSizeHint = 18,
+  SpvExecutionModeInputPoints = 19,
+  SpvExecutionModeInputLines = 20,
+  SpvExecutionModeInputLinesAdjacency = 21,
+  SpvExecutionModeTriangles = 22,
+  SpvExecutionModeInputTrianglesAdjacency = 23,
+  SpvExecutionModeQuads = 24,
+  SpvExecutionModeIsolines = 25,
+  SpvExecutionModeOutputVertices = 26,
+  SpvExecutionModeOutputPoints = 27,
+  SpvExecutionModeOutputLineStrip = 28,
+  SpvExecutionModeOutputTriangleStrip = 29,
+  SpvExecutionModeVecTypeHint = 30,
+  SpvExecutionModeContractionOff = 31,
+  SpvExecutionModePostDepthCoverage = 4446,
+  SpvExecutionModeStencilRefReplacingEXT = 5027,
+  SpvExecutionModeMax = 0x7fffffff,
 } SpvExecutionMode;
 
 typedef enum SpvStorageClass_ {
@@ -2234,7 +2234,7 @@ create_shader(const char* tag)
   int flag;
   // NOTE: we can pass &tag because tag is first field in the
   // Shader_Info structure. This looks kind of dangerous but it works.
-  Shader_Info* ret = lru_cache_get(&g.shader_cache, &tag, &flag);
+  Shader_Info* ret = lru_cache_get(&g.shader_cache, &(Shader_Info) { .tag = tag }, &flag);
   if (flag == 0)
     return ret;
   size_t buffer_size = 0;
@@ -2259,6 +2259,152 @@ create_shader(const char* tag)
 }
 
 typedef struct {
+
+  VkDescriptorSetLayoutBinding bindings[LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET];
+  uint32_t num_bindings;
+  VkDescriptorSetLayout layout;
+
+} DS_Layout;
+
+static uint32_t
+hash_ds_layout(const void* obj)
+{
+  const DS_Layout* l = obj;
+  return hash_memory(l->bindings, l->num_bindings * sizeof(VkDescriptorSetLayoutBinding));
+}
+
+static int
+eq_ds_layout(const void* l, const void* r)
+{
+  const DS_Layout* left = l, *right = r;
+  if (left->num_bindings != right->num_bindings)
+    return 0;
+  return memcmp(left->bindings, right->bindings,
+                left->num_bindings * sizeof(VkDescriptorSetLayoutBinding)) == 0;
+}
+
+static void
+destroy_ds_layout(void* obj)
+{
+  DS_Layout* s = obj;
+  vkDestroyDescriptorSetLayout(g.logical_device, s->layout, NULL);
+}
+
+static DS_Layout*
+create_ds_layout(const VkDescriptorSetLayoutBinding* bindings, uint32_t num_bindings)
+{
+  int flag;
+  if (num_bindings > LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET) {
+    LOG_ERROR("max number of bindings per descriptor set is configured to be %d",
+              LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET);
+    return NULL;
+  }
+  // TODO: sort bindings
+  DS_Layout temp;
+  memcpy(temp.bindings, bindings, num_bindings * sizeof(VkDescriptorSetLayoutBinding));
+  temp.num_bindings = num_bindings;
+  DS_Layout* ret = lru_cache_get(&g.ds_layout_cache, &temp, &flag);
+  if (flag == 0)
+    return ret;
+  VkDescriptorSetLayoutCreateInfo layout_info = {
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+    .bindingCount = num_bindings,
+    .pBindings = bindings,
+  };
+  VkResult err = vkCreateDescriptorSetLayout(g.logical_device, &layout_info, NULL, &ret->layout);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create descriptor layout with error %s", to_string_VkResult(err));
+  }
+  return ret;
+}
+
+typedef struct {
+
+  // NOTE: I think using pointer here is a bit dangerous as some
+  // descriptor set layouts can be destroyed. I should find a better
+  // way to represent reference to a ds_layout.
+  VkDescriptorSetLayout set_layouts[LIDA_GFX_SHADER_MAX_SETS];
+  VkPushConstantRange   ranges[LIDA_GFX_SHADER_MAX_RANGES];
+  uint32_t              num_sets;
+  uint32_t              num_ranges;
+  VkPipelineLayout      handle;
+
+} Pipeline_Layout;
+
+static uint32_t
+hash_pipeline_layout(const void* obj)
+{
+  const Pipeline_Layout* p = obj;
+  uint32_t hash1 = hash_memory(p->set_layouts, p->num_sets * sizeof(VkDescriptorSetLayout));
+  uint32_t hash2 = hash_memory(p->ranges, p->num_ranges * sizeof(VkPushConstantRange));
+  return (hash1 ^ hash2) + (hash1<<3) + 0x696969*(hash2<<6);
+}
+
+static int
+eq_pipeline_layout(const void* l, const void* r)
+{
+  const Pipeline_Layout* left = l, *right = r;
+  if (left->num_sets != right->num_sets)
+    return 0;
+  if (left->num_ranges != right->num_ranges)
+    return 0;
+  return
+    memcmp(left->set_layouts, right->set_layouts, left->num_sets * sizeof(VkDescriptorSetLayout)) == 0 &&
+    memcmp(left->ranges, right->ranges, left->num_ranges * sizeof(VkPushConstantRange)) == 0;
+}
+
+static void
+destroy_pipeline_layout(void* obj)
+{
+  Pipeline_Layout* s = obj;
+  vkDestroyPipelineLayout(g.logical_device, s->handle, NULL);
+}
+
+static Pipeline_Layout*
+create_pipeline_layout(Shader_Info** shader_templates, uint32_t count)
+{
+  Pipeline_Layout layout = { 0 };
+#if 1
+  (void)shader_templates;
+  (void)count;
+#else
+  if (count > 0) {
+    Shader_Info shader;
+    memcpy(&shader, shader_templates[0], sizeof(Shader_Info));
+    if (count > 1) {
+      for (uint32_t j = 1; j < count; j++) {
+        // TODO: merge shader_info's
+      }
+    }
+  }
+#endif
+  int flag;
+  Pipeline_Layout* ret = lru_cache_get(&g.pipeline_layout_cache, &layout, &flag);
+  if (flag == 0)
+    return ret;
+  // create a new pipeline layout
+  VkPipelineLayoutCreateInfo pipeline_layout = {
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    .setLayoutCount = layout.num_sets,
+    .pSetLayouts = layout.set_layouts,
+    .pushConstantRangeCount = layout.num_ranges,
+    .pPushConstantRanges = layout.ranges,
+  };
+  VkResult err = vkCreatePipelineLayout(g.logical_device, &pipeline_layout, NULL, &ret->handle);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create pipeline layout with error %s", to_string_VkResult(err));
+  }
+  return ret;
+}
+
+typedef struct {
+  VkPipeline handle;
+  VkPipelineLayout layout;
+} Pipeline;
+_Static_assert(sizeof(Pipeline) <= sizeof(GFX_Pipeline), "internal error: need to adjust sizeof for GFX_Pipeline");
+// NOTE: we don't cache pipelines as it won't be so good
+
+typedef struct {
   VkImage       image;
   VkImageView   image_view;
   VkFramebuffer framebuffer;
@@ -2273,7 +2419,7 @@ typedef struct {
 
   VkSurfaceKHR                surface;
   VkSwapchainKHR              swapchain;
-  VkRenderPass                render_pass;
+  Render_Pass*                render_pass;
   uint32_t                    num_images;
   Window_Image                images[8]; // NOTE: we hope that no vulkan driver creates more than 8 images for a swapchain
   Window_Frame                frames[2];
@@ -2416,8 +2562,7 @@ create_swapchain(Window* window)
       .final_layout = GFX_IMAGE_LAYOUT_PRESENT_SRC_KHR,
       .work_layout = GFX_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
-    Render_Pass* render_pass = create_render_pass(&attachment, 1);
-    window->render_pass = render_pass->render_pass;
+    window->render_pass = create_render_pass(&attachment, 1);
   }
 
   // get images of swapchain (Vulkan kindly manages their memory and lifetime for us)
@@ -2443,7 +2588,7 @@ create_swapchain(Window* window)
   };
   VkFramebufferCreateInfo framebuffer_info = {
     .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-    .renderPass = window->render_pass,
+    .renderPass = window->render_pass->render_pass,
     .attachmentCount = 1,
     .width = window->swapchain_extent.width,
     .height = window->swapchain_extent.height,
@@ -2680,6 +2825,8 @@ gfx_init(const GFX_Init_Info* info)
 #define CACHE_CREATE(bytes, t, T) lru_cache_init(bytes, push_mem_right(bytes), hash_##t, eq_##t, destroy_##t, sizeof(T), #T);
   g.render_pass_cache = CACHE_CREATE(1536, render_pass, Render_Pass);
   g.shader_cache = CACHE_CREATE(4096, shader_info, Shader_Info);
+  g.ds_layout_cache = CACHE_CREATE(2048, ds_layout, DS_Layout);
+  g.pipeline_layout_cache = CACHE_CREATE(1536, pipeline_layout, Pipeline_Layout);
 #undef CACHE_CREATE
 
   return 0;
@@ -2693,6 +2840,9 @@ gfx_init(const GFX_Init_Info* info)
 void
 gfx_free()
 {
+  lru_cache_destroy(&g.pipeline_layout_cache);
+  lru_cache_destroy(&g.ds_layout_cache);
+  lru_cache_destroy(&g.shader_cache);
   lru_cache_destroy(&g.render_pass_cache);
 
   vkDestroyCommandPool(g.logical_device, g.command_pool, NULL);
@@ -2717,6 +2867,169 @@ void
 gfx_wait_idle_gpu()
 {
   vkDeviceWaitIdle(g.logical_device);
+}
+
+int
+gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX_Pipeline_Desc* descs)
+{
+  VkPipeline* handles                                           = alloca(count * sizeof(VkPipeline));
+  VkGraphicsPipelineCreateInfo* create_infos                    = alloca(count * sizeof(VkGraphicsPipelineCreateInfo));
+  VkPipelineShaderStageCreateInfo* stages                       = alloca(2 * count * sizeof(VkPipelineShaderStageCreateInfo));
+  VkShaderModule* modules                                       = alloca(2 * count * sizeof(VkShaderModule));
+  VkPipelineVertexInputStateCreateInfo* vertex_input_states     = alloca(count * sizeof(VkPipelineVertexInputStateCreateInfo));
+  VkPipelineInputAssemblyStateCreateInfo* input_assembly_states = alloca(count * sizeof(VkPipelineInputAssemblyStateCreateInfo));
+  VkPipelineViewportStateCreateInfo* viewport_states            = alloca(count * sizeof(VkPipelineViewportStateCreateInfo));
+  VkPipelineRasterizationStateCreateInfo* rasterization_states  = alloca(count * sizeof(VkPipelineRasterizationStateCreateInfo));
+  VkPipelineMultisampleStateCreateInfo* multisample_states      = alloca(count * sizeof(VkPipelineMultisampleStateCreateInfo));
+  VkPipelineDepthStencilStateCreateInfo* depth_stencil_states   = alloca(count * sizeof(VkPipelineDepthStencilStateCreateInfo));
+  VkPipelineColorBlendStateCreateInfo* color_blend_states       = alloca(count * sizeof(VkPipelineColorBlendStateCreateInfo));
+  VkPipelineDynamicStateCreateInfo* dynamic_states              = alloca(count * sizeof(VkPipelineDynamicStateCreateInfo));
+  VkPipelineColorBlendAttachmentState* color_blend = alloca(count * sizeof(VkPipelineColorBlendAttachmentState));
+  VkPipelineColorBlendStateCreateInfo* blend_states = alloca(count * sizeof(VkPipelineColorBlendStateCreateInfo));
+  for (uint32_t i = 0; i < count; i++) {
+    Shader_Info* shaders[2];
+    // load vertex shader
+    shaders[0] = create_shader(descs[i].vertex_shader);
+    if (!shaders[0]) return -1;
+    modules[2*i] = shaders[0]->module;
+    stages[2*i] = (VkPipelineShaderStageCreateInfo) {
+      .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage  = VK_SHADER_STAGE_VERTEX_BIT,
+        .module = modules[2*i],
+        .pName  = "main"
+    };
+    // load fragment shader
+    if (descs[i].fragment_shader) {
+      shaders[1] = create_shader(descs[i].fragment_shader);
+      if (!shaders[1]) return -1;
+      modules[2*i+1] = shaders[1]->module;
+      stages[2*i+1] = (VkPipelineShaderStageCreateInfo) {
+        .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .module = modules[2*i+1],
+        .pName  = "main"
+      };
+    }
+    // create pipeline layout
+    Pipeline_Layout* layout = create_pipeline_layout(shaders, (descs[i].fragment_shader) ? 2 : 1);
+    ((Pipeline*)&pipelines[i])->layout = layout->handle;
+    // pipeline setup
+    vertex_input_states[i] = (VkPipelineVertexInputStateCreateInfo) {
+      .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      .vertexBindingDescriptionCount   = 0,
+      .vertexAttributeDescriptionCount = 0,
+    };
+    input_assembly_states[i] = (VkPipelineInputAssemblyStateCreateInfo) {
+      .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+      .topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+      // NOTE: we don't support primitiveRestartEnable
+      .primitiveRestartEnable = VK_FALSE
+    };
+    viewport_states[i] = (VkPipelineViewportStateCreateInfo) {
+      .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+      // currently we always 1 viewport and 1 scissor, maybe I should
+      // add an option to use multiple scissors. I saw that ImGui uses
+      // multiple scissors for rendering.
+      .viewportCount = 1,
+      .pViewports    = 0,
+      .scissorCount  = 1,
+      .pScissors     = 0,
+    };
+    rasterization_states[i] = (VkPipelineRasterizationStateCreateInfo) {
+      .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .depthClampEnable        = VK_FALSE,
+      .rasterizerDiscardEnable = VK_FALSE,
+      .polygonMode             = VK_POLYGON_MODE_FILL,
+      .cullMode                = VK_CULL_MODE_NONE,
+      // we always use CCW
+      .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .depthBiasEnable         = 0,
+      .lineWidth               = 1.0,
+    };
+
+    multisample_states[i] = (VkPipelineMultisampleStateCreateInfo) {
+      .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+      // NOTE: we don't use MSAA in this engine
+      .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+      .sampleShadingEnable  = VK_FALSE,
+    };
+
+    depth_stencil_states[i] = (VkPipelineDepthStencilStateCreateInfo) {
+      .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      .depthTestEnable       = VK_FALSE,
+      .depthWriteEnable      = VK_FALSE,
+      .depthCompareOp        = VK_COMPARE_OP_GREATER,
+      // we're not using depth bounds
+      .depthBoundsTestEnable = VK_FALSE,
+    };
+    color_blend_states[i] = (VkPipelineColorBlendStateCreateInfo) {
+      .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      .logicOpEnable   = VK_FALSE,
+      // .logicOp         = descs[i].blend_logic_op,
+      // .attachmentCount = descs[i].attachment_count,
+      // .pAttachments    = descs[i].attachments,
+    };
+
+    color_blend[i] = (VkPipelineColorBlendAttachmentState) {
+      .blendEnable = VK_FALSE,
+      .colorWriteMask = VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT|VK_COLOR_COMPONENT_A_BIT
+    };
+    blend_states[i] = (VkPipelineColorBlendStateCreateInfo) {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      .logicOpEnable = VK_FALSE,
+      .attachmentCount = 1,
+      .pAttachments = &color_blend[i],
+    };
+
+    static const VkDynamicState todo_remove_this_dynamic_states[] = {
+      VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+    };
+
+    dynamic_states[i] = (VkPipelineDynamicStateCreateInfo) {
+      .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+      .dynamicStateCount = ARR_SIZE(todo_remove_this_dynamic_states),
+      .pDynamicStates    = todo_remove_this_dynamic_states,
+    };
+
+    Render_Pass* render_pass = (Render_Pass*)descs[i].render_pass;
+
+    create_infos[i] = (VkGraphicsPipelineCreateInfo) {
+      .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+      .stageCount          = (descs[i].fragment_shader) ? 2 : 1,
+      .pStages             = &stages[i*2],
+      .pVertexInputState   = &vertex_input_states[i],
+      .pInputAssemblyState = &input_assembly_states[i],
+      .pViewportState      = &viewport_states[i],
+      .pRasterizationState = &rasterization_states[i],
+      .pMultisampleState   = &multisample_states[i],
+      // I think it's pretty convenient to specify depth_write = 0 and
+      // depth_test = 0 to say that pipeline doesn't use depth buffer.
+      // .pDepthStencilState  = (descs[i].depth_write || descs[i].depth_test) ? &depth_stencil_states[i] : NULL,
+      .pDepthStencilState  = NULL,
+      .pColorBlendState    = &blend_states[i],
+      .pDynamicState       = &dynamic_states[i],
+      .layout              = layout->handle,
+      .renderPass          = render_pass->render_pass,
+      .subpass             = 0
+    };
+  }
+  VkResult err = vkCreateGraphicsPipelines(g.logical_device, VK_NULL_HANDLE, // TODO: pipeline caches
+                                           count, create_infos, VK_NULL_HANDLE, handles);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create some of pipelines with error %s", to_string_VkResult(err));
+    return -1;
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    ((Pipeline*)&pipelines[i])->handle = handles[i];
+  }
+  return 0;
+}
+
+void
+gfx_destroy_pipeline(GFX_Pipeline* pip)
+{
+  Pipeline* pipeline = (Pipeline*)pip;
+  vkDestroyPipeline(g.logical_device, pipeline->handle, NULL);
 }
 
 #ifdef LIDA_GFX_USE_SDL
@@ -2865,6 +3178,13 @@ gfx_submit_and_present(GFX_Window* win)
   return 0;
 }
 
+GFX_Render_Pass*
+gfx_get_main_pass(GFX_Window* win)
+{
+  Window* window = (Window*)win;
+  return (GFX_Render_Pass*)window->render_pass;
+}
+
 void
 gfx_begin_main_pass(GFX_Window* win)
 {
@@ -2874,7 +3194,7 @@ gfx_begin_main_pass(GFX_Window* win)
                            .extent = window->swapchain_extent };
   VkRenderPassBeginInfo begin_info = {
     .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-    .renderPass      = window->render_pass,
+    .renderPass      = window->render_pass->render_pass,
     .framebuffer     = window->images[window->current_image].framebuffer,
     .renderArea      = render_area,
     .clearValueCount = 0,
@@ -2902,4 +3222,17 @@ void
 gfx_end_render_pass()
 {
   vkCmdEndRenderPass(g.current_cmd);
+}
+
+void
+gfx_bind_pipeline(GFX_Pipeline* pip)
+{
+  Pipeline* pipeline = (Pipeline*)pip;
+  vkCmdBindPipeline(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+}
+
+void
+gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
+{
+  vkCmdDraw(g.current_cmd, vertex_count, instance_count, first_vertex, first_instance);
 }

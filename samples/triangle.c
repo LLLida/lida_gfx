@@ -36,11 +36,17 @@ int main(int argc, char** argv) {
   GFX_Window window;
   gfx_create_window_sdl(&window, handle, 1);
 
-#if 0
-  gfx_begin_commands(&window);
-  gfx_swap_buffers(&window);
-  gfx_submit_and_present(&window);
-#else
+  GFX_Pipeline triangle_pipeline;
+  GFX_Pipeline_Desc desc = {
+    .vertex_shader   = "shaders/triangle.vert.spv",
+    .fragment_shader = "shaders/triangle.frag.spv",
+    .render_pass     = gfx_get_main_pass(&window),
+  };
+  r = gfx_create_graphics_pipelines(&triangle_pipeline, 1, &desc);
+  if (r != 0) {
+    printf("FATAL: failed to create triangle pipeline\n");
+  }
+
   int running = 1;
   SDL_Event event;
   while (running) {
@@ -62,14 +68,17 @@ int main(int argc, char** argv) {
     gfx_swap_buffers(&window);
     {
       gfx_begin_main_pass(&window);
+      gfx_bind_pipeline(&triangle_pipeline);
+      gfx_draw(3, 1, 0, 0);
       gfx_end_render_pass();
     }
 
     gfx_submit_and_present(&window);
   }
-#endif
 
   gfx_wait_idle_gpu();
+
+  gfx_destroy_pipeline(&triangle_pipeline);
 
   gfx_destroy_window(&window);
 
