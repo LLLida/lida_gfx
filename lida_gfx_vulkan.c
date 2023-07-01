@@ -2422,8 +2422,8 @@ static Pipeline_Layout*
 create_pipeline_layout(const Shader_Reflect** shader_templates, uint32_t count)
 {
   Pipeline_Layout layout = { 0 };
-  Shader_Reflect shader;
   if (count > 0) {
+    Shader_Reflect shader;
     memcpy(&shader, shader_templates[0], sizeof(Shader_Reflect));
     if (count > 1) {
       merge_shader_reflects(&shader, shader_templates+1, count-1);

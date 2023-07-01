@@ -1,4 +1,8 @@
-/* -*- compile-command: "./build.sh"; -*- */
+/* lida_gfx sample: triangle.c
+
+   This sample shows basic usage of the lida_gfx library by rendering
+   a triangle on screen.
+ */
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -41,7 +45,7 @@ int main(int argc, char** argv) {
   printf("Initialised vulkan successfully!\n");
 
   // Create window.
-  SDL_Window* handle = SDL_CreateWindow("window", SDL_WINDOWPOS_CENTERED|SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED|SDL_WINDOWPOS_CENTERED, 1080, 720, SDL_WINDOW_VULKAN);
+  SDL_Window* handle = SDL_CreateWindow("lida_gfx sample: triangle", SDL_WINDOWPOS_CENTERED|SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED|SDL_WINDOWPOS_CENTERED, 1080, 720, SDL_WINDOW_VULKAN);
   GFX_Window window;
   gfx_create_window_sdl(&window, handle, 1);
 

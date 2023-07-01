@@ -288,6 +288,7 @@ typedef struct SDL_Window SDL_Window;
 /**
    Create a window.
    @param vsync - whether to use vsync
+   @note the SDL_WINDOW_VULKAN flag must be passed to SDL_CreateWindow
  */
 int gfx_create_window_sdl(GFX_Window* window, SDL_Window* handle, int vsync);
 
