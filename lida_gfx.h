@@ -11,6 +11,8 @@
              |_________| |____| |________/   |___|   |___|
 
    Graphics abstraction layer for Vulkan.
+   Author: Adil Mokhammad
+   Mail: 0adilmohammad0@gmail.com
 
    INSTALLATION. This library is bundled as two files: lida_gfx.h and
    lida_gfx_vulkan.c. Just copy them inside your project. You'd need
