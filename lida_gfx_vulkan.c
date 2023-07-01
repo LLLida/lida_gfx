@@ -2258,6 +2258,64 @@ create_shader(const char* tag)
   return ret;
 }
 
+static void
+merge_shader_reflects(Shader_Reflect* dst, const Shader_Reflect** shaders, uint32_t count)
+{
+  for (uint32_t i = 0; i < count; i++) {
+    const Shader_Reflect* src = shaders[i];
+    dst->stages |= src->stages;
+    if (src->set_count > dst->set_count) dst->set_count = src->set_count;
+    for (uint32_t i = 0; i < src->set_count; i++) {
+      const Binding_Set_Desc* set = &src->sets[i];
+      uint32_t* pCount = &dst->sets[i].binding_count;
+      uint32_t old_count = *pCount;
+      for (uint32_t j = 0; j < set->binding_count; j++) {
+        int found = 0;
+        for (uint32_t k = 0; old_count; k++) {
+          VkDescriptorSetLayoutBinding* binding = &dst->sets[j].bindings[k];
+          if (binding->binding == set->bindings[j].binding) {
+            if (binding->descriptorType != set->bindings[j].descriptorType ||
+                binding->descriptorCount != set->bindings[j].descriptorCount) {
+              LOG_WARN("shader merge error: different uniforms have the same binding number");
+            }
+            binding->stageFlags |= set->bindings[j].stageFlags;
+            found = 1;
+            break;
+          }
+        }
+        if (!found) {
+          // add binding
+          assert(*pCount < LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET &&
+                 "shader reflect merge: binding number overflow, "
+                 "try to use less number of bindings per set");
+          memcpy(&dst->sets[i].bindings[*pCount], &set->bindings[j],
+                 sizeof(VkDescriptorSetLayoutBinding));
+          (*pCount)++;
+        }
+      }
+    }
+    for (uint32_t i = 0; i < src->range_count; i++) {
+      const VkPushConstantRange* lrange, *rrange;
+      int found = 0;
+      rrange = &src->ranges[i];
+      for (uint32_t j = 0; j < dst->range_count; j++) {
+        lrange = &dst->ranges[j];
+        if (lrange->offset == rrange->offset &&
+            lrange->size == rrange->size) {
+          found = 1;
+          break;
+        }
+      }
+      if (!found) {
+        assert(dst->range_count < LIDA_GFX_SHADER_MAX_RANGES &&
+               "shader reflect merge: push constant number overflow");
+        memcpy(&dst->ranges[dst->range_count], rrange, sizeof(VkPushConstantRange));
+        dst->range_count++;
+      }
+    }
+  }
+}
+
 typedef struct {
 
   VkDescriptorSetLayoutBinding bindings[LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET];
@@ -2361,23 +2419,25 @@ destroy_pipeline_layout(void* obj)
 }
 
 static Pipeline_Layout*
-create_pipeline_layout(Shader_Info** shader_templates, uint32_t count)
+create_pipeline_layout(const Shader_Reflect** shader_templates, uint32_t count)
 {
   Pipeline_Layout layout = { 0 };
-#if 1
-  (void)shader_templates;
-  (void)count;
-#else
+  Shader_Reflect shader;
   if (count > 0) {
-    Shader_Info shader;
-    memcpy(&shader, shader_templates[0], sizeof(Shader_Info));
+    memcpy(&shader, shader_templates[0], sizeof(Shader_Reflect));
     if (count > 1) {
-      for (uint32_t j = 1; j < count; j++) {
-        // TODO: merge shader_info's
-      }
+      merge_shader_reflects(&shader, shader_templates+1, count-1);
+    }
+    layout.num_sets = shader.set_count;
+    for (uint32_t i = 0; i < shader.set_count; i++) {
+      DS_Layout* ds_layout = create_ds_layout(shader.sets[i].bindings, shader.sets[i].binding_count);
+      layout.set_layouts[i] = ds_layout->layout;
+    }
+    layout.num_ranges = shader.range_count;
+    for (uint32_t i = 0; i < shader.range_count; i++) {
+      layout.ranges[i] = shader.ranges[i];
     }
   }
-#endif
   int flag;
   Pipeline_Layout* ret = lru_cache_get(&g.pipeline_layout_cache, &layout, &flag);
   if (flag == 0)
@@ -2887,11 +2947,12 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
   VkPipelineColorBlendAttachmentState* color_blend = alloca(count * sizeof(VkPipelineColorBlendAttachmentState));
   VkPipelineColorBlendStateCreateInfo* blend_states = alloca(count * sizeof(VkPipelineColorBlendStateCreateInfo));
   for (uint32_t i = 0; i < count; i++) {
-    Shader_Info* shaders[2];
+    const Shader_Reflect* reflects[2];
     // load vertex shader
-    shaders[0] = create_shader(descs[i].vertex_shader);
-    if (!shaders[0]) return -1;
-    modules[2*i] = shaders[0]->module;
+    Shader_Info* vertex_shader = create_shader(descs[i].vertex_shader);
+    if (!vertex_shader) return -1;
+    reflects[0] = &vertex_shader->reflect;
+    modules[2*i] = vertex_shader->module;
     stages[2*i] = (VkPipelineShaderStageCreateInfo) {
       .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .stage  = VK_SHADER_STAGE_VERTEX_BIT,
@@ -2900,9 +2961,10 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
     };
     // load fragment shader
     if (descs[i].fragment_shader) {
-      shaders[1] = create_shader(descs[i].fragment_shader);
-      if (!shaders[1]) return -1;
-      modules[2*i+1] = shaders[1]->module;
+      Shader_Info* fragment_shader = create_shader(descs[i].fragment_shader);
+      if (!fragment_shader) return -1;
+      reflects[1] = &fragment_shader->reflect;
+      modules[2*i+1] = fragment_shader->module;
       stages[2*i+1] = (VkPipelineShaderStageCreateInfo) {
         .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -2911,7 +2973,7 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
       };
     }
     // create pipeline layout
-    Pipeline_Layout* layout = create_pipeline_layout(shaders, (descs[i].fragment_shader) ? 2 : 1);
+    Pipeline_Layout* layout = create_pipeline_layout(reflects, (descs[i].fragment_shader) ? 2 : 1);
     ((Pipeline*)&pipelines[i])->layout = layout->handle;
     // pipeline setup
     vertex_input_states[i] = (VkPipelineVertexInputStateCreateInfo) {
