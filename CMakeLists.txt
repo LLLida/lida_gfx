@@ -36,4 +36,8 @@ if (ENABLE_STATIC_ANALYZER)
     -fanalyzer)
 endif ()
 
-add_subdirectory(samples)
+option(LIDA_GFX_BUILD_SAMPLES "Enable building of samples." OFF)
+
+if (${LIDA_GFX_BUILD_SAMPLES})
+  add_subdirectory(samples)
+endif ()
