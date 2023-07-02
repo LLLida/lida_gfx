@@ -379,10 +379,12 @@ lru_cache_get(LRU_Cache* lru, const void* obj, int* flag)
         right->prev = node->prev;
       }
       // move to front
-      node->prev = -1;          // debug
-      node->next = lru->first;
-      lru_cache_ith(lru, lru->first)->prev = *next;
-      lru->first = *next;
+      if (*next != lru->first) {
+        node->prev = -1;          // debug
+        node->next = lru->first;
+        lru_cache_ith(lru, lru->first)->prev = *next;
+        lru->first = *next;
+      }
 
       if (flag) *flag = 0;
       return node+1;
@@ -547,6 +549,15 @@ static struct {
   VkQueue graphics_queue;
   VkDebugReportCallbackEXT debug_report_callback;
   VkCommandPool command_pool;
+  VkDescriptorPool static_ds_pool;
+  VkDescriptorPool dynamic_ds_pool;
+
+  VkWriteDescriptorSet ds_writes[32];
+  union {
+    VkDescriptorBufferInfo buffer;
+    VkDescriptorImageInfo image;
+  } ds_objects[32];
+  uint32_t ds_writes_offset;
 
   VkCommandBuffer current_cmd;
 
@@ -605,6 +616,16 @@ push_mem_right(uint32_t bytes)
   g.memright -= (bytes+3)>>2;
   void* ret = &g.membuf[g.memright];
   return ret;
+}
+
+uint32_t count_set_bits(uint32_t n)
+{
+  uint32_t count = 0;
+  while (n) {
+    n &= (n - 1);
+    count++;
+  }
+  return count;
 }
 
 
@@ -2710,6 +2731,172 @@ create_window_frames(Window* window)
   return err;
 }
 
+typedef struct {
+  VkDeviceMemory handle;
+  VkDeviceSize size;
+  VkDeviceSize offset;
+  uint32_t type;
+  // maybe NULL
+  void* mapped;
+} Memory_Block;
+_Static_assert(sizeof(Memory_Block) <= sizeof(GFX_Memory_Block), "internal error: need to adjust sizeof GFX_Memory_Block");
+
+static VkMemoryPropertyFlags
+get_memory_flags(const Memory_Block* memory)
+{
+  return g.memory_properties.memoryTypes[memory->type].propertyFlags;
+}
+
+static void
+merge_memory_requirements(const VkMemoryRequirements* requirements, uint32_t count, VkMemoryRequirements* out)
+{
+  memcpy(out, &requirements[0], sizeof(VkMemoryRequirements));
+  for (uint32_t i = 1; i < count; i++) {
+    out->size = ALIGN_TO(out->size, requirements[i].alignment) + requirements[i].size;
+    out->memoryTypeBits &= requirements[i].memoryTypeBits;
+  }
+}
+
+static VkResult
+allocate_memory_block(Memory_Block* memory, VkDeviceSize size,
+                      VkMemoryPropertyFlags flags, uint32_t memory_type_bits)
+{
+  uint32_t best_type = 0;
+  for (uint32_t i = 0; i < g.memory_properties.memoryTypeCount; i++) {
+    if ((g.memory_properties.memoryTypes[i].propertyFlags & flags) == flags &&
+        (1 << i) & memory_type_bits) {
+      uint32_t a = g.memory_properties.memoryTypes[i].propertyFlags;
+      uint32_t b = g.memory_properties.memoryTypes[best_type].propertyFlags;
+      if (count_set_bits(a&flags) > count_set_bits(b&flags))
+        best_type = i;
+    }
+  }
+  VkMemoryAllocateInfo allocate_info = {
+    .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+    .allocationSize = size,
+    .memoryTypeIndex = best_type,
+  };
+  VkResult err = vkAllocateMemory(g.logical_device, &allocate_info, NULL, &memory->handle);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to allocate memory with error %s", to_string_VkResult(err));
+    return err;
+  }
+  memory->offset = 0;
+  memory->size = size;
+  memory->type = best_type;
+  if (get_memory_flags(memory) & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+    err = vkMapMemory(g.logical_device, memory->handle, 0, VK_WHOLE_SIZE, 0, &memory->mapped);
+    if (err != VK_SUCCESS) {
+      LOG_ERROR("failed to map memory with error %s", to_string_VkResult(err));
+      return err;
+    }
+  } else {
+    memory->mapped = NULL;
+  }
+  return VK_SUCCESS;
+}
+
+static void
+free_memory_block(Memory_Block* memory)
+{
+  if (memory->handle && memory->mapped) {
+    vkUnmapMemory(g.logical_device, memory->handle);
+  }
+  vkFreeMemory(g.logical_device, memory->handle, NULL);
+  memory->handle = VK_NULL_HANDLE;
+}
+
+static void
+reset_memory_block(Memory_Block* memory)
+{
+  memory->offset = 0;
+}
+
+static VkResult
+eat_memory_block(Memory_Block* memory, const VkMemoryRequirements* requirements)
+{
+  if (((1 << memory->type) & requirements->memoryTypeBits) == 0) {
+    LOG_ERROR("buffer cannot be bound to memory. bits %u are needed, but bit %u is available",
+              requirements->memoryTypeBits, memory->type);
+    return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+  }
+  memory->offset = ALIGN_TO(memory->offset, requirements->alignment);
+  if (memory->offset > memory->size) {
+    LOG_ERROR("out of video memory");
+    return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+  }
+  return VK_SUCCESS;
+}
+
+typedef struct {
+  VkBuffer handle;
+  uint32_t size;
+  void* mapped;
+} Buffer;
+_Static_assert(sizeof(Buffer) <= sizeof(GFX_Buffer), "internal error: adjust sizeof for GFX_Buffer");
+
+static int
+create_buffer(Buffer* buffer, GFX_Buffer_Usage usage, uint32_t size)
+{
+  VkBufferCreateInfo buffer_info = {
+    .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+    .size        = size,
+    .usage       = (VkBufferUsageFlags)usage,
+    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+  };
+  VkResult err = vkCreateBuffer(g.logical_device, &buffer_info, NULL, &buffer->handle);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create buffer with error %s", to_string_VkResult(err));
+  }
+  buffer->size = size;
+  buffer->mapped = NULL;
+  return err;
+}
+
+static void
+destroy_buffer(Buffer* buffer)
+{
+  vkDestroyBuffer(g.logical_device, buffer->handle, NULL);
+  buffer->handle = VK_NULL_HANDLE;
+}
+
+static VkResult
+bind_buffer_to_memory(Memory_Block* memory, Buffer* buffer,
+                      const VkMemoryRequirements* requirements,
+                      VkMappedMemoryRange* mapped_range)
+{
+  VkResult err = eat_memory_block(memory, requirements);
+  if (err != VK_SUCCESS) {
+    return err;
+  }
+  err = vkBindBufferMemory(g.logical_device, buffer->handle, memory->handle, memory->offset);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to bind buffer to memory with error %s", to_string_VkResult(err));
+  } else {
+    if (memory->mapped) {
+      buffer->mapped = (char*)memory->mapped + memory->offset;
+    }
+    if (mapped_range) {
+      mapped_range->sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+      mapped_range->memory = memory->handle;
+      mapped_range->offset = memory->offset;
+      // Vulkan spec: If size is not equal to VK_WHOLE_SIZE, size must either be a multiple of
+      // VkPhysicalDeviceLimits::nonCoherentAtomSize, or offset plus size must equal the size
+      // of memory.
+      mapped_range->size = ALIGN_TO(requirements->size, g.device_properties.limits.nonCoherentAtomSize);
+    }
+    memory->offset += requirements->size;
+  }
+  return err;
+}
+
+typedef struct {
+  VkImage image;
+  VkExtent3D extent;
+} Image;
+_Static_assert(sizeof(Image) <= sizeof(GFX_Image), "internal error: adjust sizeof for GFX_Image");
+
+
 /* --Implementation */
 
 int
@@ -2718,6 +2905,7 @@ gfx_init(const GFX_Init_Info* info)
   g.log_fn = info->log_fn;
   g.load_shader_fn = info->load_shader_fn;
   g.free_shader_fn = info->free_shader_fn;
+  g.ds_writes_offset = 0;
 
   g.memright = ARR_SIZE(g.membuf);
 
@@ -2882,6 +3070,38 @@ gfx_init(const GFX_Init_Info* info)
     LOG_ERROR("failed to create command pool with error %s", to_string_VkResult(err));
   }
 
+  // create descriptor pools
+  // tweak values here to reduce memory usage of application/add more slots for descriptors
+  VkDescriptorPoolSize sizes[] = {
+    // { VK_DESCRIPTOR_TYPE_SAMPLER, 0 },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64 },
+    // { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 64 },
+    // { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 0 },
+    // { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 0 },
+    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32 },
+    // { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0 },
+    // { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 0 },
+    // { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 16 },
+  };
+  VkDescriptorPoolCreateInfo pool_info = {
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+    .maxSets = 128,
+    .poolSizeCount = ARR_SIZE(sizes),
+    .pPoolSizes = sizes,
+  };
+  err = vkCreateDescriptorPool(g.logical_device, &pool_info, NULL, &g.static_ds_pool);
+  if (err != VK_SUCCESS) {
+    LOG_WARN("failed to create descriptor pool with error %s", to_string_VkResult(err));
+  }
+  pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+  err = vkCreateDescriptorPool(g.logical_device, &pool_info, NULL, &g.dynamic_ds_pool);
+  if (err != VK_SUCCESS) {
+    LOG_WARN("failed to create descriptor pool with error %s", to_string_VkResult(err));
+  }
+
+  // initialize caches
 #define CACHE_CREATE(bytes, t, T) lru_cache_init(bytes, push_mem_right(bytes), hash_##t, eq_##t, destroy_##t, sizeof(T), #T);
   g.render_pass_cache = CACHE_CREATE(1536, render_pass, Render_Pass);
   g.shader_cache = CACHE_CREATE(4096, shader_info, Shader_Info);
@@ -2905,6 +3125,8 @@ gfx_free()
   lru_cache_destroy(&g.shader_cache);
   lru_cache_destroy(&g.render_pass_cache);
 
+  vkDestroyDescriptorPool(g.logical_device, g.static_ds_pool, NULL);
+  vkDestroyDescriptorPool(g.logical_device, g.dynamic_ds_pool, NULL);
   vkDestroyCommandPool(g.logical_device, g.command_pool, NULL);
 
   vkDestroyDevice(g.logical_device, NULL);
@@ -2942,7 +3164,6 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
   VkPipelineRasterizationStateCreateInfo* rasterization_states  = alloca(count * sizeof(VkPipelineRasterizationStateCreateInfo));
   VkPipelineMultisampleStateCreateInfo* multisample_states      = alloca(count * sizeof(VkPipelineMultisampleStateCreateInfo));
   VkPipelineDepthStencilStateCreateInfo* depth_stencil_states   = alloca(count * sizeof(VkPipelineDepthStencilStateCreateInfo));
-  VkPipelineColorBlendStateCreateInfo* color_blend_states       = alloca(count * sizeof(VkPipelineColorBlendStateCreateInfo));
   VkPipelineDynamicStateCreateInfo* dynamic_states              = alloca(count * sizeof(VkPipelineDynamicStateCreateInfo));
   VkPipelineColorBlendAttachmentState* color_blend = alloca(count * sizeof(VkPipelineColorBlendAttachmentState));
   VkPipelineColorBlendStateCreateInfo* blend_states = alloca(count * sizeof(VkPipelineColorBlendStateCreateInfo));
@@ -2978,8 +3199,10 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
     // pipeline setup
     vertex_input_states[i] = (VkPipelineVertexInputStateCreateInfo) {
       .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      .vertexBindingDescriptionCount   = 0,
-      .vertexAttributeDescriptionCount = 0,
+      .vertexBindingDescriptionCount   = descs[i].vertex_binding_count,
+      .pVertexBindingDescriptions      = (const VkVertexInputBindingDescription*)descs[i].vertex_bindings,
+      .vertexAttributeDescriptionCount = descs[i].vertex_attribute_count,
+      .pVertexAttributeDescriptions    = (const VkVertexInputAttributeDescription*)descs[i].vertex_attributes,
     };
     input_assembly_states[i] = (VkPipelineInputAssemblyStateCreateInfo) {
       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -3023,13 +3246,6 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
       .depthCompareOp        = VK_COMPARE_OP_GREATER,
       // we're not using depth bounds
       .depthBoundsTestEnable = VK_FALSE,
-    };
-    color_blend_states[i] = (VkPipelineColorBlendStateCreateInfo) {
-      .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .logicOpEnable   = VK_FALSE,
-      // .logicOp         = descs[i].blend_logic_op,
-      // .attachmentCount = descs[i].attachment_count,
-      // .pAttachments    = descs[i].attachments,
     };
 
     color_blend[i] = (VkPipelineColorBlendAttachmentState) {
@@ -3287,14 +3503,155 @@ gfx_end_render_pass()
 }
 
 void
-gfx_bind_pipeline(GFX_Pipeline* pip)
+gfx_bind_pipeline(GFX_Pipeline* pip, const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count)
 {
   Pipeline* pipeline = (Pipeline*)pip;
   vkCmdBindPipeline(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+  if (ds_count > 0) {
+    vkCmdBindDescriptorSets(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline->layout, 0, ds_count, (const VkDescriptorSet*)descriptor_sets,
+                            0, NULL);
+  }
 }
 
 void
 gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
 {
   vkCmdDraw(g.current_cmd, vertex_count, instance_count, first_vertex, first_instance);
+}
+
+int
+gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, uint32_t count, GFX_Memory_Properties properties)
+{
+  VkMemoryRequirements* buffer_requirements = alloca(count * sizeof(VkMemoryRequirements));
+  for (uint32_t i = 0; i < count; i++) {
+    Buffer* buffer = (Buffer*)&buffers[i];
+    vkGetBufferMemoryRequirements(g.logical_device, buffer->handle, &buffer_requirements[i]);
+  }
+  VkMemoryRequirements requirements;
+  merge_memory_requirements(buffer_requirements, count, &requirements);
+  if (allocate_memory_block((Memory_Block*)memory, requirements.size, properties, UINT32_MAX) != 0) {
+    return -1;
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    Buffer* buffer = (Buffer*)&buffers[i];
+    bind_buffer_to_memory((Memory_Block*)memory, buffer, &buffer_requirements[i], NULL);
+  }
+  return 0;
+}
+
+void
+gfx_free_memory(GFX_Memory_Block* memory)
+{
+  free_memory_block((Memory_Block*)memory);
+}
+
+int
+gfx_create_buffer(GFX_Buffer* buffer, GFX_Buffer_Usage usage, uint32_t size)
+{
+  return create_buffer((Buffer*)buffer, usage, size);
+}
+
+void
+gfx_destroy_buffer(GFX_Buffer* buffer)
+{
+  destroy_buffer((Buffer*)buffer);
+}
+
+void*
+gfx_get_buffer_data(GFX_Buffer* buff)
+{
+  Buffer* buffer = (Buffer*)buff;
+  return buffer->mapped;
+}
+
+int
+gfx_copy_to_buffer(GFX_Buffer* buff, const void* src, uint32_t offset, uint32_t size)
+{
+  Buffer* buffer = (Buffer*)buff;
+  if (buffer->mapped == NULL)
+    return -1;
+  if (offset + size > buffer->size)
+    return -2;
+  void* dst = (char*)buffer->mapped + offset;
+  memcpy(dst, src, size);
+  return 0;
+}
+
+void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets)
+{
+  VkBuffer* handles = alloca(count * sizeof(VkBuffer));
+  for (uint32_t i = 0; i < count; i++) {
+    Buffer* buffer = (Buffer*)&buffers[i];
+    handles[i] = buffer->handle;
+  }
+  vkCmdBindVertexBuffers(g.current_cmd, 0, count, handles, offsets);
+}
+
+int
+gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
+                             const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
+                             int resetable)
+{
+  VkDescriptorSetLayoutBinding* bindings_vk = alloca(num_bindings * sizeof(VkDescriptorSetLayoutBinding));
+  for (uint32_t i = 0; i < num_bindings; i++) {
+    bindings_vk[i] = (VkDescriptorSetLayoutBinding) {
+      .binding = bindings[i].binding,
+      .descriptorType = (VkDescriptorType)bindings[i].type,
+      .descriptorCount = 1,
+      .stageFlags = (VkShaderStageFlags)bindings[i].stages,
+    };
+  }
+  DS_Layout* layout = create_ds_layout(bindings_vk, num_bindings);
+  VkDescriptorSetLayout* layouts = alloca(num_sets * sizeof(VkDescriptorSetLayout));
+  for (uint32_t i = 0; i < num_sets; i++)
+    layouts[i] = layout->layout;
+  VkDescriptorSetAllocateInfo allocate_info = {
+    .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+    .descriptorPool     = (resetable) ? g.dynamic_ds_pool : g.static_ds_pool,
+    .descriptorSetCount = num_sets,
+    .pSetLayouts        = layouts,
+  };
+  VkResult err = vkAllocateDescriptorSets(g.logical_device, &allocate_info, (VkDescriptorSet*)sets);
+  if (err != VK_SUCCESS) {
+    LOG_WARN("failed to allocate descriptor sets with error %s", to_string_VkResult(err));
+  }
+  return err;
+}
+
+int
+gfx_free_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets)
+{
+  VkResult err = vkFreeDescriptorSets(g.logical_device, g.dynamic_ds_pool, num_sets, (VkDescriptorSet*)sets);
+  if (err != VK_SUCCESS) {
+    LOG_WARN("failed to free descriptor sets with error %s", to_string_VkResult(err));
+  }
+  return err;
+}
+
+void
+gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type, const GFX_Buffer* buff, uint32_t offset, uint32_t range)
+{
+  const Buffer* buffer = (const Buffer*)buff;
+  g.ds_objects[g.ds_writes_offset].buffer = (VkDescriptorBufferInfo) {
+    .buffer = buffer->handle,
+    .offset = offset,
+    .range = range,
+  };
+  g.ds_writes[g.ds_writes_offset] = (VkWriteDescriptorSet) {
+    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    .dstSet = (VkDescriptorSet)set,
+    .dstBinding = binding,
+    .descriptorCount = 1,
+    .descriptorType = (VkDescriptorType)type,
+    .pBufferInfo = &g.ds_objects[g.ds_writes_offset].buffer
+  };
+  g.ds_writes_offset++;
+}
+
+void
+gfx_batch_update_descriptor_sets()
+{
+  vkUpdateDescriptorSets(g.logical_device, g.ds_writes_offset, g.ds_writes, 0, NULL);
+  g.ds_writes_offset = 0;
 }

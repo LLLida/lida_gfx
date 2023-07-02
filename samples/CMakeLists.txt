@@ -26,6 +26,10 @@ function(add_sample TARGET)
 endfunction(add_sample)
 
 add_sample(triangle)
-
 add_shader(triangle "triangle.vert")
 add_shader(triangle "triangle.frag")
+
+add_sample(cube)
+target_link_libraries(cube PRIVATE m)
+add_shader(cube "cube.vert")
+add_shader(cube "cube.frag")

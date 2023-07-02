@@ -72,28 +72,26 @@ typedef struct {
 
 typedef enum {
 
-  /* memory flags */
-  GFX_MEMORY_HEAP_GPU = 1<<0,
-  GFX_MEMORY_HEAP_CPU = 1<<1,
-  GFX_MEMORY_HEAP_GPU_CPU = 1<<2,
-
-  /* buffer flags */
   // allows buffer to be the source in transfer operations
-  GFX_BUFFER_TRANSFER_SRC = 1<<3,
+  GFX_BUFFER_USAGE_TRANSFER_SRC = 0x00000001,
   // allows buffer to be the destination in transfer operations
-  GFX_BUFFER_TRANSFER_DST = 1<<4,
+  GFX_BUFFER_USAGE_TRANSFER_DST = 0x00000002,
   // allows buffer to be readed from shaders(uniform buffer)
-  GFX_BUFFER_UNIFORM = 1<<4,
+  GFX_BUFFER_USAGE_UNIFORM = 0x00000010,
   // allows buffer to be readed/written from shaders(storage buffer)
-  GFX_BUFFER_STORAGE = 1<<5,
+  GFX_BUFFER_USAGE_STORAGE = 0x00000020,
   // allows buffer to be used as index buffer
-  GFX_BUFFER_INDEX = 1<<6,
+  GFX_BUFFER_USAGE_INDEX = 0x00000040,
   // allows buffer to be used as vertex buffer
-  GFX_BUFFER_VERTEX = 1<<7,
+  GFX_BUFFER_USAGE_VERTEX = 0x00000080,
   // allows buffer to used as indirect buffer
-  GFX_BUFFER_INDIRECT = 1<<8,
+  GFX_BUFFER_USAGE_INDIRECT = 0x00000100,
 
-  /* image flags */
+} GFX_Buffer_Usage;
+
+typedef enum {
+
+  // TODO: use correct values
   // allows image to be the source in transfer operations
   GFX_IMAGE_TRANSFER_SRC = 1<<3,
   // allows image to be the destination in transfer operations
@@ -107,7 +105,7 @@ typedef enum {
   // allows image to be used as depth-stencil attachment
   GFX_IMAGE_DEPTH_STENCIL_ATTACHMENT = 1<<8,
 
-} GFX_Bits;
+} GFX_Image_Usage;
 
 typedef enum {
 
@@ -139,14 +137,54 @@ typedef enum {
   GFX_FORMAT_R8G8B8A8_UINT = 41,
   GFX_FORMAT_R8G8B8A8_SINT = 42,
   GFX_FORMAT_R8G8B8A8_SRGB = 43,
+  GFX_FORMAT_R16_UNORM = 70,
+  GFX_FORMAT_R16_SNORM = 71,
+  GFX_FORMAT_R16_USCALED = 72,
+  GFX_FORMAT_R16_SSCALED = 73,
+  GFX_FORMAT_R16_UINT = 74,
+  GFX_FORMAT_R16_SINT = 75,
+  GFX_FORMAT_R16_SFLOAT = 76,
+  GFX_FORMAT_R16G16_UNORM = 77,
+  GFX_FORMAT_R16G16_SNORM = 78,
+  GFX_FORMAT_R16G16_USCALED = 79,
+  GFX_FORMAT_R16G16_SSCALED = 80,
+  GFX_FORMAT_R16G16_UINT = 81,
+  GFX_FORMAT_R16G16_SINT = 82,
+  GFX_FORMAT_R16G16_SFLOAT = 83,
+  GFX_FORMAT_R16G16B16_UNORM = 84,
+  GFX_FORMAT_R16G16B16_SNORM = 85,
+  GFX_FORMAT_R16G16B16_USCALED = 86,
+  GFX_FORMAT_R16G16B16_SSCALED = 87,
+  GFX_FORMAT_R16G16B16_UINT = 88,
+  GFX_FORMAT_R16G16B16_SINT = 89,
+  GFX_FORMAT_R16G16B16_SFLOAT = 90,
+  GFX_FORMAT_R16G16B16A16_UNORM = 91,
+  GFX_FORMAT_R16G16B16A16_SNORM = 92,
+  GFX_FORMAT_R16G16B16A16_USCALED = 93,
+  GFX_FORMAT_R16G16B16A16_SSCALED = 94,
+  GFX_FORMAT_R16G16B16A16_UINT = 95,
+  GFX_FORMAT_R16G16B16A16_SINT = 96,
+  GFX_FORMAT_R16G16B16A16_SFLOAT = 97,
+  GFX_FORMAT_R32_UINT = 98,
+  GFX_FORMAT_R32_SINT = 99,
+  GFX_FORMAT_R32_SFLOAT = 100,
+  GFX_FORMAT_R32G32_UINT = 101,
+  GFX_FORMAT_R32G32_SINT = 102,
+  GFX_FORMAT_R32G32_SFLOAT = 103,
+  GFX_FORMAT_R32G32B32_UINT = 104,
+  GFX_FORMAT_R32G32B32_SINT = 105,
+  GFX_FORMAT_R32G32B32_SFLOAT = 106,
+  GFX_FORMAT_R32G32B32A32_UINT = 107,
+  GFX_FORMAT_R32G32B32A32_SINT = 108,
+  GFX_FORMAT_R32G32B32A32_SFLOAT = 109,
 
 } GFX_Format;
 
 typedef enum {
 
-  GFX_STAGE_VERTEX = 1<<0,
-  GFX_STAGE_FRAGMENT = 1<<1,
-  GFX_STAGE_COMPUTE = 1<<2,
+  GFX_STAGE_VERTEX = 0x00000001,
+  GFX_STAGE_FRAGMENT = 0x00000010,
+  GFX_STAGE_COMPUTE = 0x00000020,
   GFX_STAGE_ALL = 0x7FFFFFFF,
 
 } GFX_Stage;
@@ -183,6 +221,16 @@ typedef enum {
 
 } GFX_Image_Layout;
 
+typedef enum {
+    GFX_MEMORY_PROPERTY_DEVICE_LOCAL = 0x00000001,
+    GFX_MEMORY_PROPERTY_HOST_VISIBLE = 0x00000002,
+    GFX_MEMORY_PROPERTY_HOST_COHERENT = 0x00000004,
+    GFX_MEMORY_PROPERTY_HOST_CACHED = 0x00000008,
+    // Following flags are unsupported at the moment
+    // GFX_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT = 0x00000010,
+    // GFX_MEMORY_PROPERTY_PROTECTED_BIT = 0x00000020,
+} GFX_Memory_Properties;
+
 typedef struct {
 
   GFX_Format format;
@@ -197,50 +245,26 @@ typedef struct {
 typedef struct GFX_Render_Pass GFX_Render_Pass;
 
 typedef struct {
-
-  const char* tag;
-  uint32_t bytes;
-  GFX_Bits bits;
-
-} GFX_Buffer;
+    uint32_t binding;
+    uint32_t stride;
+    int      per_instance;
+} GFX_Vertex_Binding;
 
 typedef struct {
-
-  const char* tag;
-  uint32_t width, height;
-  GFX_Format format;
-  GFX_Bits bits;
-
-} GFX_Image;
-
-typedef enum {
-
-  GFX_TYPE_SAMPLER,
-  GFX_TYPE_IMAGE_SAMPLER,
-  GFX_TYPE_STORAGE_IMAGE,
-  GFX_TYPE_UNIFORM_BUFFER,
-  GFX_TYPE_STORAGE_BUFFER,
-
-} GFX_Binding_Type;
-
-typedef struct {
-
-  union {
-    GFX_Buffer* buffer;
-    GFX_Image* image;
-  } data;
-  uint32_t index;
-  GFX_Binding_Type type;
-  GFX_Stage stages;
-
-} GFX_Binding;
-
-typedef uint64_t GFX_Descriptor_Set;
+    uint32_t    location;
+    uint32_t    binding;
+    GFX_Format  format;
+    uint32_t    offset;
+} GFX_Vertex_Attribute;
 
 typedef struct {
 
   const char* vertex_shader;
   const char* fragment_shader;
+  uint32_t vertex_binding_count;
+  const GFX_Vertex_Binding* vertex_bindings;
+  uint32_t vertex_attribute_count;
+  const GFX_Vertex_Attribute* vertex_attributes;
   // TODO: primitive topology
   // TODO: viewport
   // TODO: scissor
@@ -258,8 +282,38 @@ typedef struct {
 } GFX_Pipeline;
 
 typedef struct {
+  char data[48];
+} GFX_Memory_Block;
+
+typedef struct {
   char data[512];
 } GFX_Window;
+
+typedef struct {
+  char data[32];
+} GFX_Buffer;
+
+typedef struct {
+  char data[32];
+} GFX_Image;
+
+typedef enum {
+
+  GFX_TYPE_SAMPLER = 0,
+  GFX_TYPE_IMAGE_SAMPLER = 1,
+  GFX_TYPE_STORAGE_IMAGE = 3,
+  GFX_TYPE_UNIFORM_BUFFER = 6,
+  GFX_TYPE_STORAGE_BUFFER = 7,
+
+} GFX_Descriptor_Type;
+
+typedef uint64_t GFX_Descriptor_Set;
+
+typedef struct {
+  uint32_t binding;
+  GFX_Descriptor_Type type;
+  GFX_Stage stages;
+} GFX_Descriptor_Set_Binding;
 
 /**
    Initialise the graphics library.
@@ -320,9 +374,27 @@ GFX_Render_Pass* gfx_render_pass(const GFX_Attachment_Info* attachments, uint32_
 
 void gfx_end_render_pass();
 
-void gfx_bind_pipeline(GFX_Pipeline* pipeline);
+void gfx_bind_pipeline(GFX_Pipeline* pipeline, const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count);
 
 void gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance);
+
+int gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, uint32_t count, GFX_Memory_Properties properties);
+void gfx_free_memory(GFX_Memory_Block* memory);
+
+int gfx_create_buffer(GFX_Buffer* buffer, GFX_Buffer_Usage usage, uint32_t size);
+void gfx_destroy_buffer(GFX_Buffer* buffer);
+void* gfx_get_buffer_data(GFX_Buffer* buffer);
+int gfx_copy_to_buffer(GFX_Buffer* buffer, const void* src, uint32_t offset, uint32_t size);
+
+void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets);
+
+int gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
+                                 const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
+                                 int resetable);
+int gfx_free_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets);
+void gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
+                           const GFX_Buffer* buffer, uint32_t offset, uint32_t range);
+void gfx_batch_update_descriptor_sets();
 
 #ifdef __cplusplus
 }
