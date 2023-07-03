@@ -1,7 +1,11 @@
 /* lida_gfx sample: cube.c
 
    This sample shows on how to allocate GPU resources(buffers, images)
-   and work with renderpasses by rendering a rotating cube.
+   and work with renderpasses by rendering a rotating cube into a lowres image.
+
+   Here what GPU does at each frame:
+    1 pass: render a cube into low resolution image with depth applied.
+    2 pass: read resulting image from previous pass and render it fullscreen.
 */
 #include <stdio.h>
 #include <stdarg.h>
@@ -20,8 +24,9 @@ static void log_func(int sev, const char* fmt, ...) {
   printf("\n");
 }
 
+// Vertex data for our cube
 static const float cube_vertex_data[] = {
-  // -x
+  // -x               color
   0.0f, 1.0f, 1.0f,   0.8f, 0.0f, 0.0f,
   0.0f, 1.0f, 0.0f,   0.8f, 0.0f, 0.0f,
   0.0f, 0.0f, 0.0f,   0.8f, 0.0f, 0.0f,
@@ -57,12 +62,12 @@ static const float cube_vertex_data[] = {
   0.0f, 0.0f, 0.0f,   0.0f, 0.8f, 0.8f,
   0.0f, 1.0f, 0.0f,   0.0f, 0.8f, 0.8f,
   // +z
-  0.0f, 0.0f, 1.0f,   0.3f, 0.3f, 0.3f,
-  1.0f, 0.0f, 1.0f,   0.3f, 0.3f, 0.3f,
-  1.0f, 1.0f, 1.0f,   0.3f, 0.3f, 0.3f,
-  1.0f, 1.0f, 1.0f,   0.3f, 0.3f, 0.3f,
-  0.0f, 1.0f, 1.0f,   0.3f, 0.3f, 0.3f,
-  0.0f, 0.0f, 1.0f,   0.3f, 0.3f, 0.3f,
+  0.0f, 0.0f, 1.0f,   0.9f, 0.8f, 0.0f,
+  1.0f, 0.0f, 1.0f,   0.9f, 0.8f, 0.0f,
+  1.0f, 1.0f, 1.0f,   0.9f, 0.8f, 0.0f,
+  1.0f, 1.0f, 1.0f,   0.9f, 0.8f, 0.0f,
+  0.0f, 1.0f, 1.0f,   0.9f, 0.8f, 0.0f,
+  0.0f, 0.0f, 1.0f,   0.9f, 0.8f, 0.0f,
 };
 
 int main(int argc, char** argv) {
@@ -87,7 +92,9 @@ int main(int argc, char** argv) {
   GFX_Window window;
   gfx_create_window_sdl(&window, handle, 1);
 
+  // Create render pass which will render into a lowres texture.
   GFX_Attachment_Info offscreen_attachments[2] = {
+    // 1st attachment: color image with RGBA8 format.
     {
       .format = GFX_FORMAT_R8G8B8A8_UNORM,
       .load_op = GFX_ATTACHMENT_OP_CLEAR,
@@ -96,6 +103,7 @@ int main(int argc, char** argv) {
       .final_layout = GFX_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       .work_layout = GFX_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     },
+    // 2nd attachment: depth image with D32 format.
     {
       .format = GFX_FORMAT_D32_SFLOAT,
       .load_op = GFX_ATTACHMENT_OP_CLEAR,
@@ -107,7 +115,11 @@ int main(int argc, char** argv) {
   };
   GFX_Render_Pass* offscreen_pass = gfx_render_pass(offscreen_attachments, 2);
 
-  // Create image for offscreen pass.
+  // Create images for offscreen pass. You might notice that there are
+  // images and textures in this library. They're not the same. If
+  // you're familiar with Vulkan then think of textures as of image
+  // views. If not then consider them as slices of an image: one image
+  // may have several slices for different mips, layers.
   GFX_Image color_image, depth_image;
   gfx_create_image(&color_image, GFX_IMAGE_USAGE_COLOR_ATTACHMENT|GFX_IMAGE_USAGE_SAMPLED,
                    1080/8, 720/8, 1,
@@ -115,12 +127,17 @@ int main(int argc, char** argv) {
   gfx_create_image(&depth_image, GFX_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT,
                    1080/8, 720/8, 1,
                    GFX_FORMAT_D32_SFLOAT, 1, 1);
+  // Allocate memory for images, nothing special. Creation of images
+  // doesn't allocate any GPU memory. Note that you can create
+  // textures only after you've binded images to memory.
   GFX_Memory_Block image_memory;
   {
     GFX_Image images[2] = {color_image, depth_image};
     gfx_allocate_memory_for_images(&image_memory, images, 2,
                                    GFX_MEMORY_PROPERTY_DEVICE_LOCAL);
   }
+  // Create textures. Notice how we specified that we'd want to only
+  // touch the first mip and the first layer.
   GFX_Texture color_texture, depth_texture;
   gfx_create_texture(&color_texture, &color_image, 0, 0, 1, 1);
   gfx_create_texture(&depth_texture, &depth_image, 0, 0, 1, 1);
@@ -166,6 +183,7 @@ int main(int argc, char** argv) {
 
   GFX_Pipeline pipelines[2];
   GFX_Pipeline_Desc descs[2] = {
+    // pipeline which will render our cube.
     {
       .vertex_shader          = "shaders/cube.vert.spv",
       .fragment_shader        = "shaders/cube.frag.spv",
@@ -177,6 +195,7 @@ int main(int argc, char** argv) {
       .depth_write = 1,
       .render_pass            = offscreen_pass,
     },
+    // pipeline which renders an image.
     {
       .vertex_shader          = "shaders/offscreen.vert.spv",
       .fragment_shader        = "shaders/offscreen.frag.spv",
@@ -187,9 +206,9 @@ int main(int argc, char** argv) {
   GFX_Pipeline cube_pipeline = pipelines[0], texture_pipeline = pipelines[1];
 
   // Allocate descriptor set for uniform buffer. Note how descriptor
-  // set creation in 2 steps: allocation and update. This is done for
-  // performance reasons and it's how descriptor sets are done in
-  // Vulkan.
+  // set creation is done in 2 steps: allocation and update. This is
+  // done for performance reasons and it's how descriptor sets are
+  // done in Vulkan.
   GFX_Descriptor_Set uniform_ds;
   gfx_allocate_descriptor_sets(&uniform_ds, 1, &(GFX_Descriptor_Set_Binding) {
       .binding = 0,
@@ -205,7 +224,9 @@ int main(int argc, char** argv) {
       .stages = GFX_STAGE_FRAGMENT
     }, 1,
     0);
+  // We specified buffer range as [0..sizeof(Mat4)] - that's the exact size of uniform buffer in shader.
   gfx_descriptor_buffer(uniform_ds, 0, GFX_TYPE_UNIFORM_BUFFER, &uniform_buffer, 0, sizeof(Mat4));
+  // We specified is_linear=0 which means that we'd want to use nearest sampling.
   gfx_descriptor_sampled_texture(offscreen_ds, 0, GFX_TYPE_IMAGE_SAMPLER, &color_texture, 0, GFX_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
   gfx_batch_update_descriptor_sets();
 
@@ -267,6 +288,7 @@ int main(int argc, char** argv) {
     {
       gfx_begin_main_pass(&window);
 
+      // Render the offscreen image.
       gfx_bind_pipeline(&texture_pipeline, &offscreen_ds, 1);
       gfx_draw(6, 1, 0, 0);
 

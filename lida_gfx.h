@@ -277,7 +277,9 @@ typedef struct {
   const GFX_Vertex_Binding* vertex_bindings;
   uint32_t vertex_attribute_count;
   const GFX_Vertex_Attribute* vertex_attributes;
+  // if set to 0 than disable depth test.
   int depth_test;
+  // if set to 0 than disable writing to depth buffer.
   int depth_write;
   // TODO: primitive topology
   // TODO: viewport
@@ -392,6 +394,10 @@ void gfx_begin_main_pass(GFX_Window* window);
  */
 GFX_Render_Pass* gfx_render_pass(const GFX_Attachment_Info* attachments, uint32_t count);
 
+/**
+   Begin a render pass. This function may create a framebuffer to
+   render.
+ */
 void gfx_begin_render_pass(GFX_Render_Pass* render_pass, const GFX_Texture* attachments, uint32_t num_attachments, const GFX_Clear_Color* clear_colors);
 void gfx_end_render_pass();
 
@@ -419,6 +425,11 @@ int gfx_create_texture(GFX_Texture* texture, const GFX_Image* image,
                        uint32_t num_mips, uint32_t num_layers);
 void gfx_destroy_texture(GFX_Texture* texture);
 
+/**
+   Allocate descriptor sets that have the same layout.  After
+   allocation it is necessary to update descriptor sets with the
+   desired resources.
+   */
 int gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
                                  const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
                                  int resetable);
