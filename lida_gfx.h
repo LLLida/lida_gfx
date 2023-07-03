@@ -91,19 +91,18 @@ typedef enum {
 
 typedef enum {
 
-  // TODO: use correct values
   // allows image to be the source in transfer operations
-  GFX_IMAGE_TRANSFER_SRC = 1<<3,
+  GFX_IMAGE_USAGE_TRANSFER_SRC = 0x00000001,
   // allows image to be the destination in transfer operations
-  GFX_IMAGE_TRANSFER_DST = 1<<4,
+  GFX_IMAGE_USAGE_TRANSFER_DST = 0x00000002,
   // allows image to be readed from shaders
-  GFX_IMAGE_SAMPLED = 1<<5,
+  GFX_IMAGE_USAGE_SAMPLED = 0x00000004,
   // allows image to be written from compute shaders
-  GFX_IMAGE_STORAGE = 1<<6,
+  GFX_IMAGE_USAGE_STORAGE = 0x00000008,
   // allows image to be used as color attachment
-  GFX_IMAGE_COLOR_ATTACHMENT = 1<<7,
+  GFX_IMAGE_USAGE_COLOR_ATTACHMENT = 0x00000010,
   // allows image to be used as depth-stencil attachment
-  GFX_IMAGE_DEPTH_STENCIL_ATTACHMENT = 1<<8,
+  GFX_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT = 0x00000020,
 
 } GFX_Image_Usage;
 
@@ -177,6 +176,11 @@ typedef enum {
   GFX_FORMAT_R32G32B32A32_UINT = 107,
   GFX_FORMAT_R32G32B32A32_SINT = 108,
   GFX_FORMAT_R32G32B32A32_SFLOAT = 109,
+  GFX_FORMAT_D16_UNORM = 124,
+  GFX_FORMAT_D32_SFLOAT = 126,
+  GFX_FORMAT_D16_UNORM_S8_UINT = 128,
+  GFX_FORMAT_D24_UNORM_S8_UINT = 129,
+  GFX_FORMAT_D32_SFLOAT_S8_UINT = 130,
 
 } GFX_Format;
 
@@ -231,6 +235,14 @@ typedef enum {
     // GFX_MEMORY_PROPERTY_PROTECTED_BIT = 0x00000020,
 } GFX_Memory_Properties;
 
+typedef enum {
+  GFX_SAMPLER_ADDRESS_MODE_REPEAT = 0,
+  GFX_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT = 1,
+  GFX_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE = 2,
+  GFX_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER = 3,
+  GFX_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE = 4,
+} GFX_Sampler_Address_Mode;
+
 typedef struct {
 
   GFX_Format format;
@@ -265,6 +277,8 @@ typedef struct {
   const GFX_Vertex_Binding* vertex_bindings;
   uint32_t vertex_attribute_count;
   const GFX_Vertex_Attribute* vertex_attributes;
+  int depth_test;
+  int depth_write;
   // TODO: primitive topology
   // TODO: viewport
   // TODO: scissor
@@ -297,6 +311,10 @@ typedef struct {
   char data[32];
 } GFX_Image;
 
+typedef struct {
+  char data[32];
+} GFX_Texture;
+
 typedef enum {
 
   GFX_TYPE_SAMPLER = 0,
@@ -314,6 +332,8 @@ typedef struct {
   GFX_Descriptor_Type type;
   GFX_Stage stages;
 } GFX_Descriptor_Set_Binding;
+
+typedef float GFX_Clear_Color[4];
 
 /**
    Initialise the graphics library.
@@ -372,6 +392,7 @@ void gfx_begin_main_pass(GFX_Window* window);
  */
 GFX_Render_Pass* gfx_render_pass(const GFX_Attachment_Info* attachments, uint32_t count);
 
+void gfx_begin_render_pass(GFX_Render_Pass* render_pass, const GFX_Texture* attachments, uint32_t num_attachments, const GFX_Clear_Color* clear_colors);
 void gfx_end_render_pass();
 
 void gfx_bind_pipeline(GFX_Pipeline* pipeline, const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count);
@@ -379,6 +400,7 @@ void gfx_bind_pipeline(GFX_Pipeline* pipeline, const GFX_Descriptor_Set* descrip
 void gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance);
 
 int gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, uint32_t count, GFX_Memory_Properties properties);
+int gfx_allocate_memory_for_images(GFX_Memory_Block* memory, GFX_Image* images, uint32_t count, GFX_Memory_Properties properties);
 void gfx_free_memory(GFX_Memory_Block* memory);
 
 int gfx_create_buffer(GFX_Buffer* buffer, GFX_Buffer_Usage usage, uint32_t size);
@@ -388,12 +410,23 @@ int gfx_copy_to_buffer(GFX_Buffer* buffer, const void* src, uint32_t offset, uin
 
 void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets);
 
+int gfx_create_image(GFX_Image* image, GFX_Image_Usage usage,
+                     uint32_t width, uint32_t height, uint32_t depth,
+                     GFX_Format format, uint32_t mips, uint32_t levels);
+void gfx_destroy_image(GFX_Image* image);
+int gfx_create_texture(GFX_Texture* texture, const GFX_Image* image,
+                       uint32_t first_mip, uint32_t first_layer,
+                       uint32_t num_mips, uint32_t num_layers);
+void gfx_destroy_texture(GFX_Texture* texture);
+
 int gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
                                  const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
                                  int resetable);
 int gfx_free_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets);
 void gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
                            const GFX_Buffer* buffer, uint32_t offset, uint32_t range);
+void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
+                                    const GFX_Texture* texture, int is_linear_filter, GFX_Sampler_Address_Mode mode);
 void gfx_batch_update_descriptor_sets();
 
 #ifdef __cplusplus

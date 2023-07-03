@@ -12,6 +12,7 @@
 #define LIDA_GFX_USE_SDL
 // #define LIDA_USE_GLFW
 
+#define LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS 4
 #define LIDA_GFX_SHADER_MAX_SETS 4
 #define LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET 8
 #define LIDA_GFX_SHADER_MAX_RANGES 1
@@ -579,6 +580,7 @@ static struct {
   LRU_Cache shader_cache;
   LRU_Cache ds_layout_cache;
   LRU_Cache pipeline_layout_cache;
+  LRU_Cache framebuffer_cache;
   LRU_Cache sampler_cache;
 
   VkPhysicalDeviceProperties device_properties;
@@ -2075,7 +2077,7 @@ allocate_command_buffers(VkCommandBuffer* cmds, uint32_t count, VkCommandBufferL
 
 typedef struct {
 
-  GFX_Attachment_Info attachments[4];
+  GFX_Attachment_Info attachments[LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS];
   int count;
   VkRenderPass render_pass;
 
@@ -2835,7 +2837,7 @@ typedef struct {
 } Buffer;
 _Static_assert(sizeof(Buffer) <= sizeof(GFX_Buffer), "internal error: adjust sizeof for GFX_Buffer");
 
-static int
+static VkResult
 create_buffer(Buffer* buffer, GFX_Buffer_Usage usage, uint32_t size)
 {
   VkBufferCreateInfo buffer_info = {
@@ -2891,10 +2893,236 @@ bind_buffer_to_memory(Memory_Block* memory, Buffer* buffer,
 }
 
 typedef struct {
-  VkImage image;
+  VkImage handle;
   VkExtent3D extent;
+  VkFormat format;
 } Image;
 _Static_assert(sizeof(Image) <= sizeof(GFX_Image), "internal error: adjust sizeof for GFX_Image");
+
+static VkResult
+create_image(Image* image, GFX_Image_Usage usage, VkExtent3D extent, GFX_Format format, uint32_t mips, uint32_t layers)
+{
+  VkImageCreateInfo image_info = {
+    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+    .imageType = (extent.depth == 1) ? ((extent.height == 1) ? VK_IMAGE_TYPE_1D : VK_IMAGE_TYPE_2D) : VK_IMAGE_TYPE_3D,
+    .format = (VkFormat)format,
+    .extent = extent,
+    .mipLevels = mips,
+    .arrayLayers = layers,
+    .samples = VK_SAMPLE_COUNT_1_BIT,
+    .tiling = VK_IMAGE_TILING_OPTIMAL,
+    .usage = (VkImageUsageFlags)usage,
+    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+  };
+  VkResult err = vkCreateImage(g.logical_device, &image_info, NULL, &image->handle);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create image with error %s", to_string_VkResult(err));
+  }
+  image->extent = extent;
+  image->format = (VkFormat)format;
+  return err;
+}
+
+static void
+destroy_image(Image* image)
+{
+  vkDestroyImage(g.logical_device, image->handle, NULL);
+  image->handle = VK_NULL_HANDLE;
+}
+
+static VkResult
+bind_image_to_memory(Memory_Block* memory, Image* image,
+                     const VkMemoryRequirements* requirements)
+{
+  VkResult err = eat_memory_block(memory, requirements);
+  if (err != VK_SUCCESS) {
+    return err;
+  }
+  err = vkBindImageMemory(g.logical_device, image->handle, memory->handle, memory->offset);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to bind image to memory with error %s", to_string_VkResult(err));
+  } else {
+    memory->offset += requirements->size;
+  }
+  return err;
+}
+
+typedef struct {
+  VkImageView image_view;
+  VkExtent3D extent;
+} Texture;
+_Static_assert(sizeof(Texture) <= sizeof(GFX_Texture), "internal error: adjust sizeof for GFX_Texture");
+
+static VkResult
+create_texture(Texture* texture, Image* image, uint32_t first_mip, uint32_t first_layer,
+               uint32_t num_mips, uint32_t num_layers)
+{
+  VkComponentMapping components = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+  VkImageSubresourceRange subresource = {
+    .aspectMask = (image->format >= VK_FORMAT_D16_UNORM && image->format <= VK_FORMAT_D32_SFLOAT_S8_UINT)  ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT,
+    .baseMipLevel = first_mip,
+    .levelCount = num_mips,
+    .baseArrayLayer = first_layer,
+    .layerCount = num_layers
+  };
+  VkImageViewCreateInfo image_view_info = {
+    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+    .image = image->handle,
+    // FIXME: I think this is kind of incorrect. But I'm not so sure.
+    .viewType = (image->extent.depth == 1) ? ((image->extent.height == 1) ? VK_IMAGE_VIEW_TYPE_1D : VK_IMAGE_VIEW_TYPE_2D) : VK_IMAGE_VIEW_TYPE_3D,
+    .format = image->format,
+    .components = components,
+    .subresourceRange = subresource
+  };
+  VkResult err = vkCreateImageView(g.logical_device, &image_view_info, NULL, &texture->image_view);
+  if (err != VK_SUCCESS) {
+    LOG_WARN("failed to create texture with error %s", to_string_VkResult(err));
+  }
+  texture->extent.width = image->extent.width >> first_mip;
+  if (texture->extent.width == 0)  texture->extent.width = 1;
+  texture->extent.height = image->extent.height >> first_mip;
+  if (texture->extent.height == 0)  texture->extent.height = 1;
+  texture->extent.depth = image->extent.depth >> first_mip;
+  if (texture->extent.depth == 0)  texture->extent.depth = 1;
+  return err;
+}
+
+static void
+destroy_texture(Texture* texture)
+{
+  vkDestroyImageView(g.logical_device, texture->image_view, NULL);
+  texture->image_view = VK_NULL_HANDLE;
+}
+
+typedef struct {
+  VkRenderPass render_pass;
+  VkImageView attachments[LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS];
+  uint32_t num_attachments;
+  uint32_t width;
+  uint32_t height;
+  VkFramebuffer handle;
+} Framebuffer;
+
+static uint32_t
+hash_framebuffer(const void* obj)
+{
+  const Framebuffer* f = obj;
+  return hash_memory(f, offsetof(Framebuffer, handle));
+}
+
+static int
+eq_framebuffer(const void* l, const void* r)
+{
+  const Framebuffer* left = l, *right = r;
+  return memcmp(left, right, offsetof(Framebuffer, handle)) == 0;
+}
+
+static void
+destroy_framebuffer(void* obj)
+{
+  Framebuffer* f = obj;
+  vkDestroyFramebuffer(g.logical_device, f->handle, NULL);
+}
+
+static Framebuffer*
+create_framebuffer(const Render_Pass* render_pass, const GFX_Texture* attachments, uint32_t num_attachments)
+{
+  if (num_attachments > LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS) {
+    LOG_WARN("number of attachments(%u) is bigger than maximum value(%u)",
+             num_attachments, LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS);
+    return NULL;
+  }
+  Framebuffer framebuffer = {
+    .render_pass = render_pass->render_pass,
+    .num_attachments = num_attachments,
+    // NOTE: attachments are set to zero, so our hash is correct
+  };
+  // FIXME: should we do checks? or validation layers are enough?
+  for (uint32_t i = 0; i < num_attachments; i++) {
+    Texture* texture = (Texture*)&attachments[i];
+    framebuffer.attachments[i] = texture->image_view;
+    framebuffer.width = texture->extent.width;
+    framebuffer.height = texture->extent.height;
+  }
+  int flag;
+  Framebuffer* ret = lru_cache_get(&g.framebuffer_cache, &framebuffer, &flag);
+  if (flag == 0)
+    return ret;
+  // create a new framebuffer
+  VkFramebufferCreateInfo framebuffer_info = {
+    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+    .renderPass = ret->render_pass,
+    .attachmentCount = ret->num_attachments,
+    .pAttachments = ret->attachments,
+    .width = ret->width,
+    .height = ret->height,
+    .layers = 1,                // FIXME: is layers>1 usable?
+  };
+  VkResult err = vkCreateFramebuffer(g.logical_device, &framebuffer_info, NULL, &ret->handle);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create framebuffer with error %s", to_string_VkResult(err));
+  }
+  return ret;
+}
+
+typedef struct {
+  VkFilter filter;
+  VkSamplerAddressMode mode;
+  VkSampler handle;
+} Sampler;
+
+static uint32_t
+hash_sampler(const void* obj)
+{
+  const Sampler* s = obj;
+  return hash_memory(s, offsetof(Sampler, handle));
+}
+
+static int
+eq_sampler(const void* l, const void* r)
+{
+  const Sampler* left = l, *right = r;
+  return memcmp(left, right, offsetof(Sampler, handle)) == 0;
+}
+
+static void
+destroy_sampler(void* obj)
+{
+  Sampler* s = obj;
+  vkDestroySampler(g.logical_device, s->handle, NULL);
+}
+
+static Sampler*
+create_sampler(int is_linear, VkSamplerAddressMode mode)
+{
+  Sampler tmp = {
+    .filter = (is_linear) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST,
+    .mode = mode,
+  };
+  int flag;
+  Sampler* ret = lru_cache_get(&g.sampler_cache, &tmp, &flag);
+  if (flag == 0)
+    return ret;
+  // create a new sampler
+  VkSamplerCreateInfo sampler_info = {
+    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+    .magFilter = ret->filter,
+    .minFilter = ret->filter,
+    .mipmapMode = (ret->filter == VK_FILTER_NEAREST) ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR,
+    .addressModeU = ret->mode,
+    .addressModeV = ret->mode,
+    .addressModeW = ret->mode,
+    .minLod = 0.0f,
+    .maxLod = 1.0f,             // TODO: option to set max lod
+    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+  };
+  VkResult err = vkCreateSampler(g.logical_device, &sampler_info, NULL, &ret->handle);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create sampler with error %s", to_string_VkResult(err));
+  }
+  return ret;
+}
 
 
 /* --Implementation */
@@ -3101,12 +3329,15 @@ gfx_init(const GFX_Init_Info* info)
     LOG_WARN("failed to create descriptor pool with error %s", to_string_VkResult(err));
   }
 
-  // initialize caches
+  // initialize caches.
+  // Magic numbers in here need tweaking.
 #define CACHE_CREATE(bytes, t, T) lru_cache_init(bytes, push_mem_right(bytes), hash_##t, eq_##t, destroy_##t, sizeof(T), #T);
   g.render_pass_cache = CACHE_CREATE(1536, render_pass, Render_Pass);
   g.shader_cache = CACHE_CREATE(4096, shader_info, Shader_Info);
   g.ds_layout_cache = CACHE_CREATE(2048, ds_layout, DS_Layout);
   g.pipeline_layout_cache = CACHE_CREATE(1536, pipeline_layout, Pipeline_Layout);
+  g.framebuffer_cache = CACHE_CREATE(1024, framebuffer, Framebuffer);
+  g.sampler_cache = CACHE_CREATE(512, sampler, Sampler);
 #undef CACHE_CREATE
 
   return 0;
@@ -3120,6 +3351,8 @@ gfx_init(const GFX_Init_Info* info)
 void
 gfx_free()
 {
+  lru_cache_destroy(&g.sampler_cache);
+  lru_cache_destroy(&g.framebuffer_cache);
   lru_cache_destroy(&g.pipeline_layout_cache);
   lru_cache_destroy(&g.ds_layout_cache);
   lru_cache_destroy(&g.shader_cache);
@@ -3241,8 +3474,8 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
 
     depth_stencil_states[i] = (VkPipelineDepthStencilStateCreateInfo) {
       .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .depthTestEnable       = VK_FALSE,
-      .depthWriteEnable      = VK_FALSE,
+      .depthTestEnable       = descs[i].depth_test,
+      .depthWriteEnable      = descs[i].depth_write,
       .depthCompareOp        = VK_COMPARE_OP_GREATER,
       // we're not using depth bounds
       .depthBoundsTestEnable = VK_FALSE,
@@ -3282,8 +3515,7 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
       .pMultisampleState   = &multisample_states[i],
       // I think it's pretty convenient to specify depth_write = 0 and
       // depth_test = 0 to say that pipeline doesn't use depth buffer.
-      // .pDepthStencilState  = (descs[i].depth_write || descs[i].depth_test) ? &depth_stencil_states[i] : NULL,
-      .pDepthStencilState  = NULL,
+      .pDepthStencilState  = (descs[i].depth_write || descs[i].depth_test) ? &depth_stencil_states[i] : NULL,
       .pColorBlendState    = &blend_states[i],
       .pDynamicState       = &dynamic_states[i],
       .layout              = layout->handle,
@@ -3490,6 +3722,39 @@ gfx_begin_main_pass(GFX_Window* win)
   vkCmdSetScissor(frame->cmd, 0, 1, &render_area);
 }
 
+void
+gfx_begin_render_pass(GFX_Render_Pass* render_pass, const GFX_Texture* attachments, uint32_t num_attachments, const GFX_Clear_Color* clear_colors)
+{
+  Framebuffer* framebuffer = create_framebuffer((Render_Pass*)render_pass, attachments, num_attachments);
+  VkClearValue* clear_values = alloca(num_attachments * sizeof(VkClearValue));
+  for (uint32_t i = 0; i < num_attachments; i++) {
+    memcpy(&clear_values[i], clear_colors[i], sizeof(float)*4);
+  }
+  // TODO: option to specify render area
+  VkRect2D render_area = { .offset = {0, 0},
+                           .extent = {framebuffer->width, framebuffer->height} };
+  VkRenderPassBeginInfo begin_info = {
+    .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+    .renderPass      = ((Render_Pass*)render_pass)->render_pass,
+    .framebuffer     = framebuffer->handle,
+    .renderArea      = render_area,
+    .clearValueCount = num_attachments,
+    .pClearValues = clear_values,
+  };
+  vkCmdBeginRenderPass(g.current_cmd, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+  // TODO: option to specify whether to dynamically set viewport/scissor
+  VkViewport viewport = {
+    .x        = 0.0f,
+    .y        = 0.0f,
+    .width    = (float)render_area.extent.width,
+    .height   = (float)render_area.extent.height,
+    .minDepth = 0.0f,
+    .maxDepth = 1.0f,
+  };
+  vkCmdSetViewport(g.current_cmd, 0, 1, &viewport);
+  vkCmdSetScissor(g.current_cmd, 0, 1, &render_area);
+}
+
 GFX_Render_Pass*
 gfx_render_pass(const GFX_Attachment_Info* attachments, uint32_t count)
 {
@@ -3540,6 +3805,26 @@ gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, u
   return 0;
 }
 
+int
+gfx_allocate_memory_for_images(GFX_Memory_Block* memory, GFX_Image* images, uint32_t count, GFX_Memory_Properties properties)
+{
+  VkMemoryRequirements* image_requirements = alloca(count * sizeof(VkMemoryRequirements));
+  for (uint32_t i = 0; i < count; i++) {
+    Image* image = (Image*)&images[i];
+    vkGetImageMemoryRequirements(g.logical_device, image->handle, &image_requirements[i]);
+  }
+  VkMemoryRequirements requirements;
+  merge_memory_requirements(image_requirements, count, &requirements);
+  if (allocate_memory_block((Memory_Block*)memory, requirements.size, properties, UINT32_MAX) != 0) {
+    return -1;
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    Image* image = (Image*)&images[i];
+    bind_image_to_memory((Memory_Block*)memory, image, &image_requirements[i]);
+  }
+  return 0;
+}
+
 void
 gfx_free_memory(GFX_Memory_Block* memory)
 {
@@ -3586,6 +3871,36 @@ void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t
     handles[i] = buffer->handle;
   }
   vkCmdBindVertexBuffers(g.current_cmd, 0, count, handles, offsets);
+}
+
+int
+gfx_create_image(GFX_Image* image, GFX_Image_Usage usage,
+                 uint32_t width, uint32_t height, uint32_t depth,
+                 GFX_Format format, uint32_t mips, uint32_t levels)
+{
+  return create_image((Image*)image, usage, (VkExtent3D){ width, height, depth },
+                      format, mips, levels);
+}
+
+void
+gfx_destroy_image(GFX_Image* image)
+{
+  destroy_image((Image*)image);
+}
+
+int
+gfx_create_texture(GFX_Texture* texture, const GFX_Image* image,
+                   uint32_t first_mip, uint32_t first_layer,
+                   uint32_t num_mips, uint32_t num_layers)
+{
+  return create_texture((Texture*)texture, (Image*)image,
+                        first_mip, first_layer, num_mips, num_layers);
+}
+
+void
+gfx_destroy_texture(GFX_Texture* texture)
+{
+  destroy_texture((Texture*)texture);
 }
 
 int
@@ -3645,6 +3960,27 @@ gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_T
     .descriptorCount = 1,
     .descriptorType = (VkDescriptorType)type,
     .pBufferInfo = &g.ds_objects[g.ds_writes_offset].buffer
+  };
+  g.ds_writes_offset++;
+}
+
+void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
+                                    const GFX_Texture* tex, int is_linear_filter, GFX_Sampler_Address_Mode mode)
+{
+  const Texture* texture = (const Texture*)tex;
+  Sampler* sampler = create_sampler(is_linear_filter, (VkSamplerAddressMode)mode);
+  g.ds_objects[g.ds_writes_offset].image = (VkDescriptorImageInfo) {
+    .sampler = sampler->handle,
+    .imageView = texture->image_view,
+    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
+  g.ds_writes[g.ds_writes_offset] = (VkWriteDescriptorSet) {
+    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    .dstSet = (VkDescriptorSet)set,
+    .dstBinding = binding,
+    .descriptorCount = 1,
+    .descriptorType = (VkDescriptorType)type,
+    .pImageInfo = &g.ds_objects[g.ds_writes_offset].image
   };
   g.ds_writes_offset++;
 }
