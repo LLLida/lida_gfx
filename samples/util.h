@@ -207,6 +207,34 @@ look_at_matrix(Vec3 eye, Vec3 target, Vec3 up)
   };
 }
 
+static int log_enable_colors = 1;
+
+/**
+   Prints validation layer messages.
+   */
+static void
+log_func(int sev, const char* fmt, ...)
+{
+  const char* const colors[] = {
+    "\x1b[36m",
+    "\x1b[32m",
+    "\x1b[33m",
+    "\x1b[31m",
+  };
+  if (log_enable_colors) {
+    printf("%s", colors[sev]);
+  }
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+  va_end(ap);
+  if (log_enable_colors) {
+    printf("\x1b[0m\n");
+  } else {
+    printf("\n");
+  }
+}
+
 #ifdef __cplusplus
 }
 #endif
