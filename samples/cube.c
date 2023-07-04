@@ -88,21 +88,21 @@ int main(int argc, char** argv) {
   GFX_Attachment_Info offscreen_attachments[2] = {
     // 1st attachment: color image with RGBA8 format.
     {
-      .format = GFX_FORMAT_R8G8B8A8_UNORM,
-      .load_op = GFX_ATTACHMENT_OP_CLEAR,
-      .store_op = GFX_ATTACHMENT_OP_STORE,
+      .format         = GFX_FORMAT_R8G8B8A8_UNORM,
+      .load_op        = GFX_ATTACHMENT_OP_CLEAR,
+      .store_op       = GFX_ATTACHMENT_OP_STORE,
       .initial_layout = GFX_IMAGE_LAYOUT_UNDEFINED,
-      .final_layout = GFX_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      .work_layout = GFX_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      .final_layout   = GFX_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      .work_layout    = GFX_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     },
     // 2nd attachment: depth image with D32 format.
     {
-      .format = GFX_FORMAT_D32_SFLOAT,
-      .load_op = GFX_ATTACHMENT_OP_CLEAR,
-      .store_op = GFX_ATTACHMENT_OP_NONE,
+      .format         = GFX_FORMAT_D32_SFLOAT,
+      .load_op        = GFX_ATTACHMENT_OP_CLEAR,
+      .store_op       = GFX_ATTACHMENT_OP_NONE,
       .initial_layout = GFX_IMAGE_LAYOUT_UNDEFINED,
-      .final_layout = GFX_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      .work_layout = GFX_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+      .final_layout   = GFX_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      .work_layout    = GFX_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     }
   };
   GFX_Render_Pass* offscreen_pass = gfx_render_pass(offscreen_attachments, 2);
@@ -183,8 +183,8 @@ int main(int argc, char** argv) {
       .vertex_bindings        = &cube_vertex_binding,
       .vertex_attribute_count = 2,
       .vertex_attributes      = cube_vertex_attributes,
-      .depth_test = 1,
-      .depth_write = 1,
+      .depth_test             = 1,
+      .depth_write            = 1,
       .render_pass            = offscreen_pass,
     },
     // pipeline which renders an image.
@@ -204,16 +204,16 @@ int main(int argc, char** argv) {
   GFX_Descriptor_Set uniform_ds;
   gfx_allocate_descriptor_sets(&uniform_ds, 1, &(GFX_Descriptor_Set_Binding) {
       .binding = 0,
-      .type = GFX_TYPE_UNIFORM_BUFFER,
-      .stages = GFX_STAGE_VERTEX
+      .type    = GFX_TYPE_UNIFORM_BUFFER,
+      .stages  = GFX_STAGE_VERTEX
     }, 1,
     0);
   // Allocate descriptor set for offscreen texture.
   GFX_Descriptor_Set offscreen_ds;
   gfx_allocate_descriptor_sets(&offscreen_ds, 1, &(GFX_Descriptor_Set_Binding) {
       .binding = 0,
-      .type = GFX_TYPE_IMAGE_SAMPLER,
-      .stages = GFX_STAGE_FRAGMENT
+      .type    = GFX_TYPE_IMAGE_SAMPLER,
+      .stages  = GFX_STAGE_FRAGMENT
     }, 1,
     0);
   // We specified buffer range as [0..sizeof(Mat4)] - that's the exact size of uniform buffer in shader.
@@ -244,11 +244,11 @@ int main(int argc, char** argv) {
     // algebra.
     static float phi = 0.0f;
     phi += 0.01f;
-    Vec3 camera_pos = { 1.0f + 3.0f * sinf(phi), 0.9f + 2.0f * sinf(phi*0.5f), -0.7f + -2.7f * cosf(phi) };
+    Vec3 camera_pos    = { 1.0f + 3.0f * sinf(phi), 0.9f + 2.0f * sinf(phi*0.5f), -0.7f + -2.7f * cosf(phi) };
     Vec3 camera_target = { 0.5f, 0.5f, 0.5f };
-    Vec3 camera_up = { 0.0f, 1.0f, 0.0f };
-    Mat4 view = look_at_matrix(camera_pos, camera_target, camera_up);
-    Mat4 proj = perspective_matrix(radians(45.0f), 1080.0/720.0, 0.5f);
+    Vec3 camera_up     = { 0.0f, 1.0f, 0.0f };
+    Mat4 view          = look_at_matrix(camera_pos, camera_target, camera_up);
+    Mat4 proj          = perspective_matrix(radians(45.0f), 1080.0/720.0, 0.5f);
     Mat4 camera_matrix = mat4_mul(proj, view);
     gfx_copy_to_buffer(&uniform_buffer, &camera_matrix, 0, sizeof(camera_matrix));
 
@@ -263,7 +263,7 @@ int main(int argc, char** argv) {
       gfx_begin_render_pass(offscreen_pass, textures, 2, clear_colors);
 
       // Bind our pipeline.
-      gfx_bind_pipeline(&cube_pipeline, &uniform_ds, 1);
+      gfx_bind_pipeline(&cube_pipeline, &uniform_ds, 1, NULL, 0);
       // It is possible that one big buffer is used for several
       // tasks. For that reason Vulkan API provides per buffer
       // offset. Vertices are read beginning from that offset.
@@ -281,7 +281,7 @@ int main(int argc, char** argv) {
       gfx_begin_main_pass(&window);
 
       // Render the offscreen image.
-      gfx_bind_pipeline(&texture_pipeline, &offscreen_ds, 1);
+      gfx_bind_pipeline(&texture_pipeline, &offscreen_ds, 1, NULL, 0);
       gfx_draw(6, 1, 0, 0);
 
       gfx_end_render_pass();
