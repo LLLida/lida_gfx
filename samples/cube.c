@@ -16,14 +16,6 @@
 #include "lida_gfx.h"
 #include "util.h"
 
-static void log_func(int sev, const char* fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vprintf(fmt, ap);
-  va_end(ap);
-  printf("\n");
-}
-
 // Vertex data for our cube
 static const float cube_vertex_data[] = {
   // -x               color
@@ -73,7 +65,7 @@ static const float cube_vertex_data[] = {
 int main(int argc, char** argv) {
 
   int r = gfx_init(&(GFX_Init_Info) {
-      .app_name = "test",
+      .app_name = "lida_gfx_sample_cube",
       .app_version = 0,
       .enable_debug_layers = 1,
       .gpu_id = 0,

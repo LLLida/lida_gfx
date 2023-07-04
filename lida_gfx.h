@@ -375,9 +375,13 @@ int gfx_create_window_sdl(GFX_Window* window, SDL_Window* handle, int vsync);
  */
 void gfx_destroy_window(GFX_Window* window);
 
+int gfx_resize_window(GFX_Window* window, uint32_t* width, uint32_t* height);
+
+void gfx_get_window_size(const GFX_Window* window, uint32_t* width, uint32_t* height);
+
 void gfx_begin_commands(GFX_Window* window);
 /**
-   This also starts render pass.
+   Acquire next swapchain image. Return 0 on success, 1 if resized and other value on error.
  */
 int gfx_swap_buffers(GFX_Window* window);
 /**

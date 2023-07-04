@@ -35,3 +35,8 @@ add_shader(cube "cube.vert")
 add_shader(cube "cube.frag")
 add_shader(cube "offscreen.vert")
 add_shader(cube "offscreen.frag")
+
+add_sample(bloom_teapots)
+target_link_libraries(bloom_teapots PRIVATE m)
+add_shader(bloom_teapots "model.vert")
+add_shader(bloom_teapots "model.frag")

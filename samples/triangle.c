@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
   // Initialise the library.
   int r = gfx_init(&(GFX_Init_Info) {
-      .app_name = "test",
+      .app_name = "lida_gfx_sample_triangle",
       .app_version = 0,
       // This loads the standard Khronos validation layer.
       .enable_debug_layers = 1,

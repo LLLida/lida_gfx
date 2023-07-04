@@ -2634,6 +2634,9 @@ create_swapchain(Window* window)
     LOG_ERROR("failed to create swapchain with error %s", to_string_VkResult(err));
     return err;
   }
+  if (swapchain_info.oldSwapchain) {
+    vkDestroySwapchainKHR(g.logical_device, swapchain_info.oldSwapchain, NULL);
+  }
 
   // recreate render pass if needed
   if (old_format.format != window->format.format) {
@@ -3597,6 +3600,47 @@ gfx_destroy_window(GFX_Window* win)
   window->swapchain = VK_NULL_HANDLE;
 }
 
+int
+gfx_resize_window(GFX_Window* win, uint32_t* width, uint32_t* height)
+{
+  Window* window = (Window*)win;
+
+  VkSurfaceCapabilitiesKHR surface_capabilities;
+  VkResult err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g.physical_device, window->surface,
+                                                           &surface_capabilities);
+  if (err != VK_SUCCESS) {
+    LOG_WARN("failed to update surface capabilities");
+  }
+
+  *width = surface_capabilities.currentExtent.width;
+  *height = surface_capabilities.currentExtent.height;
+  if (window->swapchain_extent.width == *width && window->swapchain_extent.height == *height)
+    return 0;
+
+  // wait before commands end so we can destroy resources in use.
+  gfx_wait_idle_gpu();
+
+  for (uint32_t i = 0; i < window->num_images; i++) {
+    vkDestroyFramebuffer(g.logical_device, window->images[i].framebuffer, NULL);
+    vkDestroyImageView(g.logical_device, window->images[i].image_view, NULL);
+  }
+  err = create_swapchain(window);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to recreate swapchain with error %s", to_string_VkResult(err));
+    return err;
+  }
+  LOG_INFO("resized window %p", window);
+  return 1;
+}
+
+void
+gfx_get_window_size(const GFX_Window* win, uint32_t* width, uint32_t* height)
+{
+  Window* window = (Window*)win;
+  *width = window->swapchain_extent.width;
+  *height = window->swapchain_extent.height;
+}
+
 void
 gfx_begin_commands(GFX_Window* win)
 {
@@ -3624,7 +3668,7 @@ gfx_swap_buffers(GFX_Window* win)
       break;
     case VK_SUBOPTIMAL_KHR:
       LOG_WARN("acquire next image: got VK_SUBOPTIMAL_KHR");
-      break;
+      return 1;
     default:
       LOG_ERROR("failed to acquire next swapchain image with error %s", to_string_VkResult(err));
       return err;
