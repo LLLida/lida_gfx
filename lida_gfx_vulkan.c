@@ -561,6 +561,7 @@ static struct {
   uint32_t ds_writes_offset;
 
   VkCommandBuffer current_cmd;
+  GFX_Pipeline* current_pipeline;
 
   GFX_Log_Callback                log_fn;
   GFX_Load_Shader_Module_Callback load_shader_fn;
@@ -3812,21 +3813,41 @@ gfx_end_render_pass()
 }
 
 void
-gfx_bind_pipeline(GFX_Pipeline* pip, const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count)
+gfx_bind_pipeline(GFX_Pipeline* pip)
 {
   Pipeline* pipeline = (Pipeline*)pip;
   vkCmdBindPipeline(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
-  if (ds_count > 0) {
-    vkCmdBindDescriptorSets(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline->layout, 0, ds_count, (const VkDescriptorSet*)descriptor_sets,
-                            0, NULL);
-  }
+  g.current_pipeline = pip;
+}
+
+void
+gfx_bind_descriptor_sets(const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count)
+{
+  Pipeline* pipeline = (Pipeline*)g.current_pipeline;
+  vkCmdBindDescriptorSets(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pipeline->layout, 0,
+                          ds_count, (const VkDescriptorSet*)descriptor_sets,
+                          0, NULL);
+}
+
+void
+gfx_push_constants(const void* push_constant, uint32_t push_constant_size)
+{
+  Pipeline* pipeline = (Pipeline*)g.current_pipeline;
+  vkCmdPushConstants(g.current_cmd, pipeline->layout, GFX_STAGE_VERTEX, // TODO: specify stage
+                     0, push_constant_size, push_constant);
 }
 
 void
 gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
 {
   vkCmdDraw(g.current_cmd, vertex_count, instance_count, first_vertex, first_instance);
+}
+
+void
+gfx_draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance)
+{
+  vkCmdDrawIndexed(g.current_cmd, index_count, instance_count, first_index, vertex_offset, first_instance);
 }
 
 int
@@ -3907,7 +3928,8 @@ gfx_copy_to_buffer(GFX_Buffer* buff, const void* src, uint32_t offset, uint32_t 
   return 0;
 }
 
-void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets)
+void
+gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets)
 {
   VkBuffer* handles = alloca(count * sizeof(VkBuffer));
   for (uint32_t i = 0; i < count; i++) {
@@ -3915,6 +3937,13 @@ void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t
     handles[i] = buffer->handle;
   }
   vkCmdBindVertexBuffers(g.current_cmd, 0, count, handles, offsets);
+}
+
+void
+gfx_bind_index_buffer(GFX_Buffer* buff, const uint64_t offset)
+{
+  Buffer* buffer = (Buffer*)buff;
+  vkCmdBindIndexBuffer(g.current_cmd, buffer->handle, offset, VK_INDEX_TYPE_UINT32);
 }
 
 int

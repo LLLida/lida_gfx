@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
       gfx_begin_main_pass(&window);
 
       // Bind the triangle pipeline.
-      gfx_bind_pipeline(&triangle_pipeline, NULL, 0);
+      gfx_bind_pipeline(&triangle_pipeline);
       // Draw our triangle. If you're questioning why we don't bind
       // any vertex buffer then I'll answer you: all 3 vertices are
       // inside the shader. Take a look at shaders/triangle.vert.

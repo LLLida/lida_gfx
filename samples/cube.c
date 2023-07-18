@@ -263,8 +263,10 @@ int main(int argc, char** argv) {
       gfx_begin_render_pass(offscreen_pass, textures, 2, clear_colors);
 
       // Bind our pipeline.
-      gfx_bind_pipeline(&cube_pipeline, &uniform_ds, 1, NULL, 0);
-      // It is possible that one big buffer is used for several
+      gfx_bind_pipeline(&cube_pipeline);
+      gfx_bind_descriptor_sets(&uniform_ds, 1);
+
+      // It is possible to use one big buffer for several
       // tasks. For that reason Vulkan API provides per buffer
       // offset. Vertices are read beginning from that offset.
       uint64_t offset = 0;
@@ -281,7 +283,8 @@ int main(int argc, char** argv) {
       gfx_begin_main_pass(&window);
 
       // Render the offscreen image.
-      gfx_bind_pipeline(&texture_pipeline, &offscreen_ds, 1, NULL, 0);
+      gfx_bind_pipeline(&texture_pipeline);
+      gfx_bind_descriptor_sets(&offscreen_ds, 1);
       gfx_draw(6, 1, 0, 0);
 
       gfx_end_render_pass();

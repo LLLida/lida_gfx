@@ -405,9 +405,19 @@ GFX_Render_Pass* gfx_render_pass(const GFX_Attachment_Info* attachments, uint32_
 void gfx_begin_render_pass(GFX_Render_Pass* render_pass, const GFX_Texture* attachments, uint32_t num_attachments, const GFX_Clear_Color* clear_colors);
 void gfx_end_render_pass();
 
-void gfx_bind_pipeline(GFX_Pipeline* pipeline, const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count);
+void gfx_bind_pipeline(GFX_Pipeline* pipeline);
+
+/**
+   NOTE: this function must be called after gfx_bind_pipeline()!
+ */
+void gfx_bind_descriptor_sets(const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count);
+/**
+   NOTE: this function must be called after gfx_bind_pipeline()!
+ */
+void gfx_push_constants(const void* push_constant, uint32_t push_constant_size);
 
 void gfx_draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance);
+void gfx_draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance);
 
 int gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, uint32_t count, GFX_Memory_Properties properties);
 int gfx_allocate_memory_for_images(GFX_Memory_Block* memory, GFX_Image* images, uint32_t count, GFX_Memory_Properties properties);
@@ -419,6 +429,7 @@ void* gfx_get_buffer_data(GFX_Buffer* buffer);
 int gfx_copy_to_buffer(GFX_Buffer* buffer, const void* src, uint32_t offset, uint32_t size);
 
 void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets);
+void gfx_bind_index_buffer(GFX_Buffer* buffer, const uint64_t offset);
 
 int gfx_create_image(GFX_Image* image, GFX_Image_Usage usage,
                      uint32_t width, uint32_t height, uint32_t depth,
