@@ -159,9 +159,42 @@ static Mat4
 translation_matrix(Vec3 pos)
 {
   Mat4 out = mat4_identity();
-  out.m30 = pos.x;
-  out.m31 = pos.y;
-  out.m32 = pos.z;
+  out.m03 = pos.x;
+  out.m13 = pos.y;
+  out.m23 = pos.z;
+  return out;
+}
+
+/* NOTE: angle is in radians */
+static Mat4
+rotation_matrix(Vec3 axis, float angle)
+{
+  Mat4 out = mat4_identity();
+
+  float c = cosf(angle);
+  float s = sinf(angle);
+  axis = vec3_normalize(axis);
+  Vec3 temp = { axis.x * (1-c), axis.y * (1-c), axis.z * (1-c)  };
+  out.m00 = c + temp.x * axis.x;
+  out.m01 = temp.x * axis.y + s * axis.z;
+  out.m02 = temp.x * axis.z - s * axis.y;
+  out.m10 = temp.y * axis.x - s * axis.z;
+  out.m11 = c + temp.y * axis.y;
+  out.m12 = temp.y * axis.z + s * axis.x;
+  out.m20 = temp.z * axis.x + s * axis.y;
+  out.m21 = temp.z * axis.y - s * axis.x;
+  out.m22 = c + temp.z * axis.z;
+
+  return out;
+}
+
+static Mat4
+scale_matrix(Vec3 size)
+{
+  Mat4 out = mat4_identity();
+  out.m00 = size.x;
+  out.m11 = size.y;
+  out.m22 = size.z;
   return out;
 }
 

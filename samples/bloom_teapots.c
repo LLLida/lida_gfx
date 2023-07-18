@@ -23,6 +23,11 @@ typedef struct {
 const GFX_Format color_format = GFX_FORMAT_R8G8B8A8_UNORM;
 const GFX_Format depth_format = GFX_FORMAT_D32_SFLOAT;
 
+typedef struct {
+  Mat4 model_matrix;
+  Vec3 color;
+} Teapot;
+
 static GFX_Render_Pass* create_offscreen_pass();
 static void create_offscreen_pass_attachments(GFX_Window* window, GFX_Memory_Block* memory,
                                               GFX_Image* color_image, GFX_Image* depth_image,
@@ -30,10 +35,10 @@ static void create_offscreen_pass_attachments(GFX_Window* window, GFX_Memory_Blo
 static void destroy_offscreen_pass_attachments(GFX_Memory_Block* memory,
                                               GFX_Image* color_image, GFX_Image* depth_image,
                                               GFX_Texture* color_texture, GFX_Texture* depth_texture);
+static void gen_teapot(Teapot* object);
 
 int main(int argc, char** argv)
 {
-
   int r = gfx_init(&(GFX_Init_Info) {
       .app_name = "lida_gfx_sample_bloom",
       .app_version = 0,
@@ -136,6 +141,12 @@ int main(int argc, char** argv)
   gfx_descriptor_sampled_texture(offscreen_ds, 0, GFX_TYPE_IMAGE_SAMPLER, &color_texture, 0, GFX_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
   gfx_batch_update_descriptor_sets();
 
+#define NUM_TEAPOTS 16
+  Teapot teapots[NUM_TEAPOTS];
+  srand(69);
+  for (int i = 0; i < NUM_TEAPOTS; i++)
+    gen_teapot(&teapots[i]);
+
   int running = 1;
   SDL_Event event;
   while (running) {
@@ -191,23 +202,10 @@ int main(int argc, char** argv)
       gfx_bind_vertex_buffers(&vertex_buffer, 1, &offset);
       gfx_bind_index_buffer(&index_buffer, 0);
 
-      Mat4 model_matrix = {
-        0.5, 0.0, 0.0, 0.0,
-        0.0, 0.5, 0.0, 0.0,
-        0.0, 0.0, 0.5, 0.0,
-        0.0, 0.0, 0.0, 1.0,
-      };
-      gfx_push_constants(&model_matrix, sizeof(Mat4));
-      gfx_draw_indexed(num_indices, 1, 0, 0, 0);
-
-      model_matrix = (Mat4) {
-        0.5, 0.0, 0.0, 0.0,
-        0.0, 0.5, 0.0, 0.0,
-        0.0, 0.0, 0.5, 0.0,
-        2.0, -1.0, 3.0, 1.0,
-      };
-      gfx_push_constants(&model_matrix, sizeof(Mat4));
-      gfx_draw_indexed(num_indices, 1, 0, 0, 0);
+      for (int i = 0; i < NUM_TEAPOTS; i++) {
+        gfx_push_constants(&teapots[i], sizeof(Teapot));
+        gfx_draw_indexed(num_indices, 1, 0, 0, 0);
+      }
 
       gfx_end_render_pass();
     }
@@ -291,14 +289,39 @@ create_offscreen_pass_attachments(GFX_Window* window, GFX_Memory_Block* memory,
   gfx_create_texture(depth_texture, depth_image, 0, 0, 1, 1);
 }
 
- void
- destroy_offscreen_pass_attachments(GFX_Memory_Block* memory,
-                                    GFX_Image* color_image, GFX_Image* depth_image,
-                                    GFX_Texture* color_texture, GFX_Texture* depth_texture)
+void
+destroy_offscreen_pass_attachments(GFX_Memory_Block* memory,
+                                   GFX_Image* color_image, GFX_Image* depth_image,
+                                   GFX_Texture* color_texture, GFX_Texture* depth_texture)
 {
   gfx_destroy_texture(color_texture);
   gfx_destroy_texture(depth_texture);
   gfx_destroy_image(color_image);
   gfx_destroy_image(depth_image);
   gfx_free_memory(memory);
+}
+
+void
+gen_teapot(Teapot* object)
+{
+  const float range = 21.0f;
+  Vec3 translation;
+  translation.x = (rand() / (float)RAND_MAX) * range - range * 0.5;
+  translation.y = (rand() / (float)RAND_MAX) * range - range * 0.5;
+  translation.z = (rand() / (float)RAND_MAX) * range - range * 0.5;
+  Vec3 axis;
+  axis.x = (rand() / (float)RAND_MAX);
+  axis.y = (rand() / (float)RAND_MAX);
+  axis.z = (rand() / (float)RAND_MAX);
+  float angle = (rand() / (float)RAND_MAX - 0.5) * 3.1415926535898;
+
+  Mat4 t = translation_matrix(translation);
+  Mat4 r = rotation_matrix(axis, angle);
+  Mat4 s = scale_matrix((Vec3){0.5, 0.5, 0.5});
+
+  object->model_matrix = mat4_mul(r, mat4_mul(s, t));
+  // TODO: rotation
+  object->color.x = rand() / (float)RAND_MAX;
+  object->color.y = rand() / (float)RAND_MAX;
+  object->color.z = rand() / (float)RAND_MAX;
 }

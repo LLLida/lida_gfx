@@ -5,6 +5,7 @@ layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_normal;
 
 layout (location = 0) out vec3 out_normal;
+layout (location = 1) out vec3 out_color;
 
 layout (set = 0, binding = 0) uniform Camera {
   mat4 projview;
@@ -14,6 +15,7 @@ layout (set = 0, binding = 0) uniform Camera {
 
 layout (push_constant) uniform Transform {
   mat4 model_matrix;
+  vec3 color;
 };
 
 void main() {
@@ -21,4 +23,5 @@ void main() {
   // gl_Position = projview * vec4(in_position, 1.0);
   // TODO: properly rotate normal.
   out_normal = in_normal;
+  out_color = color;
 }
