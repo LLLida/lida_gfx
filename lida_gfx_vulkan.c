@@ -323,6 +323,7 @@ lru_cache_init(uint32_t bytes, void* data, hash_function_t hash_fn, equal_functi
     node->list        = i+1;
   }
   lru_cache_ith(&ret, capacity-1)->list = -1;
+  // printf("%s %u %u:\n", typename, ht_size, capacity);
   // printf("ht_size=%u capacity=%u\n", ht_size, capacity);
   return ret;
 }
@@ -362,25 +363,25 @@ lru_cache_get(LRU_Cache* lru, const void* obj, int* flag)
 {
   uint32_t hash = lru->hash_fn(obj);
   uint32_t id = hash & lru->ht_mask;
-  Node_Header* node;
+  Node_Header* node = NULL;
 
   int32_t* next = &lru->ht_data[id];
   while (*next != -1) {
     node = lru_cache_ith(lru, *next);
     if (hash == node->hash && lru->eq_fn(obj, node+1)) {
-      // remove from linked list
-      if (node->prev != -1) {
-        Node_Header* left = lru_cache_ith(lru, node->prev);
-        left->next = node->next;
-        if (*next == lru->last)
-          lru->last = left->prev;
-      }
-      if (node->next != -1) {
-        Node_Header* right = lru_cache_ith(lru, node->next);
-        right->prev = node->prev;
-      }
+
       // move to front
       if (*next != lru->first) {
+        if (node->prev != -1) {
+          Node_Header* left = lru_cache_ith(lru, node->prev);
+          left->next = node->next;
+          if (*next == lru->last)
+            lru->last = left->prev;
+        }
+        if (node->next != -1) {
+          Node_Header* right = lru_cache_ith(lru, node->next);
+          right->prev = node->prev;
+        }
         node->prev = -1;          // debug
         node->next = lru->first;
         lru_cache_ith(lru, lru->first)->prev = *next;
@@ -553,11 +554,12 @@ static struct {
   VkDescriptorPool static_ds_pool;
   VkDescriptorPool dynamic_ds_pool;
 
-  VkWriteDescriptorSet ds_writes[32];
+#define MAX_DS_WRITES 64
+  VkWriteDescriptorSet ds_writes[MAX_DS_WRITES];
   union {
     VkDescriptorBufferInfo buffer;
     VkDescriptorImageInfo image;
-  } ds_objects[32];
+  } ds_objects[MAX_DS_WRITES];
   uint32_t ds_writes_offset;
 
   VkCommandBuffer current_cmd;
@@ -1709,7 +1711,7 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
     return -1;
   }
   uint32_t id_bound = code[3];
-  SPIRV_ID* ids = push_mem(sizeof(SPIRV_ID) * id_bound);
+  SPIRV_ID* ids = alloca(sizeof(SPIRV_ID) * id_bound);
   memset(ids, 0, sizeof(SPIRV_ID) * id_bound);
   for (uint32_t i = 0; i < id_bound; i++) {
     ids->data.binding.inputAttachmentIndex = UINT32_MAX;
@@ -1901,7 +1903,6 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
 
   }
 
-  pop_mem(ids);
   return 0;
 }
 
@@ -2386,6 +2387,7 @@ create_ds_layout(const VkDescriptorSetLayoutBinding* bindings, uint32_t num_bind
   memcpy(temp.bindings, bindings, num_bindings * sizeof(VkDescriptorSetLayoutBinding));
   temp.num_bindings = num_bindings;
   DS_Layout* ret = lru_cache_get(&g.ds_layout_cache, &temp, &flag);
+
   if (flag == 0)
     return ret;
   VkDescriptorSetLayoutCreateInfo layout_info = {
@@ -2484,6 +2486,7 @@ create_pipeline_layout(const Shader_Reflect** shader_templates, uint32_t count)
 typedef struct {
   VkPipeline handle;
   VkPipelineLayout layout;
+  VkPipelineBindPoint bind_point;
 } Pipeline;
 _Static_assert(sizeof(Pipeline) <= sizeof(GFX_Pipeline), "internal error: need to adjust sizeof for GFX_Pipeline");
 // NOTE: we don't cache pipelines as it won't be so good
@@ -3534,7 +3537,47 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
     return -1;
   }
   for (uint32_t i = 0; i < count; i++) {
-    ((Pipeline*)&pipelines[i])->handle = handles[i];
+    Pipeline* pipeline = (Pipeline*)&pipelines[i];
+    pipeline->handle = handles[i];
+    pipeline->bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  }
+  return 0;
+}
+
+int
+gfx_create_compute_pipelines(GFX_Pipeline* pipelines, uint32_t count, const char** tags)
+{
+  VkPipeline*                  handles      = alloca(count * sizeof(VkPipeline));
+  VkComputePipelineCreateInfo* create_infos = alloca(count * sizeof(VkComputePipelineCreateInfo));
+  VkShaderModule*              modules      = alloca(count * sizeof(VkShaderModule));
+  for (uint32_t i = 0; i < count; i++) {
+    Shader_Info* shader = create_shader(tags[i]);
+    if (!shader) return -1;
+    const Shader_Reflect* reflect = &shader->reflect;
+    modules[i] = shader->module;
+    Pipeline_Layout* layout = create_pipeline_layout(&reflect, 1);
+    ((Pipeline*)&pipelines[i])->layout = layout->handle;
+    create_infos[i] = (VkComputePipelineCreateInfo) {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = (VkPipelineShaderStageCreateInfo) {
+        .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
+        .module = modules[i],
+        .pName  = "main"
+      },
+      .layout = layout->handle
+    };
+  }
+  VkResult err = vkCreateComputePipelines(g.logical_device, VK_NULL_HANDLE, // TODO: pipeline caches
+                                          count, create_infos, VK_NULL_HANDLE, handles);
+  if (err != VK_SUCCESS) {
+    LOG_ERROR("failed to create some of pipelines with error %s", to_string_VkResult(err));
+    return -1;
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    Pipeline* pipeline = (Pipeline*)&pipelines[i];
+    pipeline->handle = handles[i];
+    pipeline->bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
   }
   return 0;
 }
@@ -3816,7 +3859,7 @@ void
 gfx_bind_pipeline(GFX_Pipeline* pip)
 {
   Pipeline* pipeline = (Pipeline*)pip;
-  vkCmdBindPipeline(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+  vkCmdBindPipeline(g.current_cmd, pipeline->bind_point, pipeline->handle);
   g.current_pipeline = pip;
 }
 
@@ -3824,7 +3867,7 @@ void
 gfx_bind_descriptor_sets(const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_count)
 {
   Pipeline* pipeline = (Pipeline*)g.current_pipeline;
-  vkCmdBindDescriptorSets(g.current_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+  vkCmdBindDescriptorSets(g.current_cmd, pipeline->bind_point,
                           pipeline->layout, 0,
                           ds_count, (const VkDescriptorSet*)descriptor_sets,
                           0, NULL);
@@ -3848,6 +3891,57 @@ void
 gfx_draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance)
 {
   vkCmdDrawIndexed(g.current_cmd, index_count, instance_count, first_index, vertex_offset, first_instance);
+}
+
+void
+gfx_dispatch(uint32_t x, uint32_t y, uint32_t z)
+{
+  vkCmdDispatch(g.current_cmd, x, y, z);
+}
+
+void
+gfx_barrier(GFX_Pipeline_Stage src_stage, GFX_Pipeline_Stage dst_stage,
+            const GFX_Image_Barrier* barriers, uint32_t count)
+{
+  if (count == 0) {
+    VkMemoryBarrier barrier = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+      .srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT,
+      .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT,
+    };
+    vkCmdPipelineBarrier(g.current_cmd, src_stage, dst_stage,
+                         0,
+                         1, &barrier,
+                         0, NULL,
+                         0, NULL);
+    return;
+  }
+  // TODO: batch barriers
+  VkImageMemoryBarrier* image_barriers = alloca(sizeof(VkImageMemoryBarrier) * count);
+  for (uint32_t i = 0; i < count; i++) {
+    Image* image = (Image*)barriers[i].image;
+    image_barriers[i] = (VkImageMemoryBarrier) {
+      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      .srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT,
+      .dstAccessMask = VK_ACCESS_MEMORY_WRITE_BIT|VK_ACCESS_MEMORY_READ_BIT,
+      .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+      .newLayout = (VkImageLayout)barriers[i].new_layout,
+      .image = image->handle,
+      .subresourceRange = (VkImageSubresourceRange) {
+        // TODO: pick aspect based on image's format
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel = barriers[i].mip_level,
+        .levelCount = barriers[i].mip_count,
+        .baseArrayLayer = barriers[i].array_layer,
+        .layerCount = barriers[i].layer_count
+      },
+    };
+  }
+  vkCmdPipelineBarrier(g.current_cmd, src_stage, dst_stage,
+                       0,       // in my experience dependency flags don't matter at all
+                       0, NULL,
+                       0, NULL,
+                       count, image_barriers);
 }
 
 int
@@ -3961,6 +4055,15 @@ gfx_destroy_image(GFX_Image* image)
   destroy_image((Image*)image);
 }
 
+void
+gfx_get_image_extent(GFX_Image* img, uint32_t* width, uint32_t* height, uint32_t* depth)
+{
+  Image* image = (Image*)img;
+  if (width)  *width  = image->extent.width;
+  if (height) *height = image->extent.height;
+  if (depth)  *depth  = image->extent.depth;
+}
+
 int
 gfx_create_texture(GFX_Texture* texture, const GFX_Image* image,
                    uint32_t first_mip, uint32_t first_layer,
@@ -4020,6 +4123,7 @@ gfx_free_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets)
 void
 gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type, const GFX_Buffer* buff, uint32_t offset, uint32_t range)
 {
+  assert(g.ds_writes_offset < MAX_DS_WRITES);
   const Buffer* buffer = (const Buffer*)buff;
   g.ds_objects[g.ds_writes_offset].buffer = (VkDescriptorBufferInfo) {
     .buffer = buffer->handle,
@@ -4037,22 +4141,44 @@ gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_T
   g.ds_writes_offset++;
 }
 
-void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
-                                    const GFX_Texture* tex, int is_linear_filter, GFX_Sampler_Address_Mode mode)
+void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding,
+                                    const GFX_Texture* tex, GFX_Image_Layout layout, int is_linear_filter, GFX_Sampler_Address_Mode mode)
 {
+  assert(g.ds_writes_offset < MAX_DS_WRITES);
   const Texture* texture = (const Texture*)tex;
   Sampler* sampler = create_sampler(is_linear_filter, (VkSamplerAddressMode)mode);
   g.ds_objects[g.ds_writes_offset].image = (VkDescriptorImageInfo) {
     .sampler = sampler->handle,
     .imageView = texture->image_view,
-    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    .imageLayout = (VkImageLayout)layout,
   };
   g.ds_writes[g.ds_writes_offset] = (VkWriteDescriptorSet) {
     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
     .dstSet = (VkDescriptorSet)set,
     .dstBinding = binding,
     .descriptorCount = 1,
-    .descriptorType = (VkDescriptorType)type,
+    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    .pImageInfo = &g.ds_objects[g.ds_writes_offset].image
+  };
+  g.ds_writes_offset++;
+}
+
+void
+gfx_descriptor_storage_texture(GFX_Descriptor_Set set, uint32_t binding, const GFX_Texture* tex)
+{
+  assert(g.ds_writes_offset < MAX_DS_WRITES);
+  const Texture* texture = (const Texture*)tex;
+  g.ds_objects[g.ds_writes_offset].image = (VkDescriptorImageInfo) {
+    .sampler = VK_NULL_HANDLE,
+    .imageView = texture->image_view,
+    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+  };
+  g.ds_writes[g.ds_writes_offset] = (VkWriteDescriptorSet) {
+    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    .dstSet = (VkDescriptorSet)set,
+    .dstBinding = binding,
+    .descriptorCount = 1,
+    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
     .pImageInfo = &g.ds_objects[g.ds_writes_offset].image
   };
   g.ds_writes_offset++;

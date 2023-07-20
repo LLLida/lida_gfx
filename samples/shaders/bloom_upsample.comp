@@ -1,0 +1,34 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+layout (set = 0, binding = 0, rgba16f) uniform image2D big_texture;
+layout (set = 0, binding = 1) uniform sampler2D small_texture;
+
+vec3 upsample_tent9(sampler2D tex, vec2 uv, vec2 texel_size) {
+  vec3 a = texture(tex, uv + texel_size * vec2(-1.0, -1.0)).rgb;
+  vec3 b = texture(tex, uv + texel_size * vec2(0.0, -1.0)).rgb;
+  vec3 c = texture(tex, uv + texel_size * vec2(1.0, -1.0)).rgb;
+  vec3 d = texture(tex, uv + texel_size * vec2(-1.0, 0.0)).rgb;
+  vec3 e = texture(tex, uv).rgb;
+  vec3 f = texture(tex, uv + texel_size * vec2(1.0, 0.0)).rgb;
+  vec3 g = texture(tex, uv + texel_size * vec2(-1.0, 1.0)).rgb;
+  vec3 h = texture(tex, uv + texel_size * vec2(0.0, 1.0)).rgb;
+  vec3 i = texture(tex, uv + texel_size * vec2(1.0, 1.0)).rgb;
+  return ((a + c + g + i) + (b + d + f + h) * 2.0 + e * 4.0) / 16.0;
+}
+
+void main() {
+  ivec2 size = imageSize(big_texture);
+  vec2 uv = vec2(gl_GlobalInvocationID.xy + 0.5f) / vec2(size);
+  vec2 texelSize = vec2(1) / vec2(textureSize(small_texture, 0));
+
+  if (any(greaterThanEqual(gl_GlobalInvocationID.xy, size)))
+    return;
+
+  vec3 originalColor = imageLoad(big_texture, ivec2(gl_GlobalInvocationID.xy)).rgb;
+  vec3 tent = upsample_tent9(small_texture, uv, texelSize);
+  imageStore(big_texture,
+             ivec2(gl_GlobalInvocationID.xy),
+             vec4(originalColor + tent, 1.0f));
+}

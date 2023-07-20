@@ -16,9 +16,13 @@ const vec3 sun_dir = normalize(vec3(0.1, 1.0, 0.03));
 
 void main() {
 
+  const float PI = 3.14159265358979;
+  const float shiny = 16.0;
+  const float energ_conserv = ( 8.0 + shiny ) / ( 8.0 * PI );
+
   float diffuse = max(dot(in_normal, sun_dir), 0.0);
-  vec3 halfway = normalize(0.5 * sun_dir + camera_dir);
-  float spec = pow(max(dot(in_normal, halfway), 0.0), 16.0);
+  vec3 halfway = normalize(sun_dir + camera_dir);
+  float spec = energ_conserv * pow(max(dot(in_normal, halfway), 0.0), shiny);
 
   vec3 light = (0.01 + diffuse + spec) * in_color;
 

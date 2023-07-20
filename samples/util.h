@@ -43,6 +43,33 @@ radians(float degrees)
   return degrees * pi / 180.0f;
 }
 
+#define MAX(a, b) ((a)>(b)?(a):(b))
+
+static uint32_t
+neareast_pow2(uint32_t v)
+{
+  // https://stackoverflow.com/questions/466204/rounding-up-to-next-power-of-2
+  v--;
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+  return v;
+}
+
+static uint32_t
+log2_u32(uint32_t x)
+{
+  uint32_t ret = 0;
+  while (x) {
+    x = x>>1;
+    ret++;
+  }
+  return ret-1;
+}
+
 static Vec3
 vec3_add(Vec3 l, Vec3 r)
 {

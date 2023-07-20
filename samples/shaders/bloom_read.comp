@@ -1,0 +1,22 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+layout (set = 0, binding = 0) uniform sampler2D mip0;
+layout (set = 0, binding = 1, rgba16f) uniform writeonly image2D mip1;
+
+const float threshold = 0.65f;
+
+void main() {
+  ivec2 size = imageSize(mip1);
+  vec2 uv = vec2(gl_GlobalInvocationID.xy + 0.5f) / vec2(size);
+
+  if (any(greaterThanEqual(gl_GlobalInvocationID.xy, size)))
+    return;
+
+  vec3 sampled_color = texture(mip0, uv).rgb;
+  float brigthness = dot(sampled_color, vec3(0.2126, 0.7152, 0.0722));
+  vec4 out_color = vec4(0.0, 0.0, 0.0, 1.0);
+  if (brigthness > threshold) out_color.rgb = sampled_color;
+  imageStore(mip1, ivec2(gl_GlobalInvocationID.xy), out_color);
+}

@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
   // We specified buffer range as [0..sizeof(Mat4)] - that's the exact size of uniform buffer in shader.
   gfx_descriptor_buffer(uniform_ds, 0, GFX_TYPE_UNIFORM_BUFFER, &uniform_buffer, 0, sizeof(Mat4));
   // We specified is_linear=0 which means that we'd want to use nearest sampling.
-  gfx_descriptor_sampled_texture(offscreen_ds, 0, GFX_TYPE_IMAGE_SAMPLER, &color_texture, 0, GFX_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+  gfx_descriptor_sampled_texture(offscreen_ds, 0, &color_texture, GFX_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, GFX_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
   gfx_batch_update_descriptor_sets();
 
   int running = 1;
