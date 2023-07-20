@@ -10,14 +10,26 @@ It does so by hiding gruesome Vulkan API code and by using LRU caches to store n
 
 * Samples
 
+Check out the [[https://github.com/LLLida/lida_gfx/tree/main/samples][samples]] directory. There are some examples on how to use this library.
+
 ** Triangle
+
+Hello world!
 
 [[./images/triangle.png]]
 
 ** Cube
 
+ - 2 render passes
+ - vertices are loaded to a vertex buffer
+ - depth buffer
+
 [[./images/cube.png]]
 
 ** Teapots
+
+ - mesh is loaded into a vertex buffer
+ - 2 render passes, one with depth buffer
+ - a compute pass to do bloom
 
 [[./images/teapots.png]]
