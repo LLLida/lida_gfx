@@ -1,0 +1,23 @@
+#+AUTHOR: Adil Mokhammad
+#+TITLE: lida_gfx
+
+* Small Vulkan abstraction library
+
+I wrote this library for my own needs. It tries to make writing Vulkan
+code not so hard by removing redundant concepts like =descriptor pools=, =descriptor set layouts=, =pipeline layouts=, =framebuffers= etc.
+
+It does so by hiding gruesome Vulkan API code and by using LRU caches to store necessary objects. This library is very lightweight: it's only 2 files, it doesn't have any dependencies except =vulkan/vulkan.h= and it does *NO allocations*.
+
+* Samples
+
+** Triangle
+
+[[./images/triangle.png]]
+
+** Cube
+
+[[./images/cube.png]]
+
+** Teapots
+
+[[./images/teapots.png]]
