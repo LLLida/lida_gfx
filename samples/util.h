@@ -4,10 +4,16 @@
   Vectors, Matrices, Camera.
  */
 #include "math.h"
+#include "stdarg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct {
+  float x;
+  float y;
+} Vec2;
 
 typedef struct {
 

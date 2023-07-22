@@ -3877,7 +3877,8 @@ void
 gfx_push_constants(const void* push_constant, uint32_t push_constant_size)
 {
   Pipeline* pipeline = (Pipeline*)g.current_pipeline;
-  vkCmdPushConstants(g.current_cmd, pipeline->layout, GFX_STAGE_VERTEX, // TODO: specify stage
+  VkShaderStageFlags stage = (pipeline->bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS) ? GFX_STAGE_VERTEX : GFX_STAGE_COMPUTE;
+  vkCmdPushConstants(g.current_cmd, pipeline->layout, stage,
                      0, push_constant_size, push_constant);
 }
 
@@ -4128,7 +4129,7 @@ gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_T
   g.ds_objects[g.ds_writes_offset].buffer = (VkDescriptorBufferInfo) {
     .buffer = buffer->handle,
     .offset = offset,
-    .range = range,
+    .range = (range == 0) ? buffer->size : range,
   };
   g.ds_writes[g.ds_writes_offset] = (VkWriteDescriptorSet) {
     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

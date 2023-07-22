@@ -484,6 +484,9 @@ int gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
                                  const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
                                  int resetable);
 int gfx_free_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets);
+/**
+   NOTE: passing 'range=0' means use whole buffer.
+   */
 void gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
                            const GFX_Buffer* buffer, uint32_t offset, uint32_t range);
 void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding,

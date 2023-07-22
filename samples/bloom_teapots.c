@@ -7,7 +7,6 @@
    Usage: press SPC to toggle camera movement. press 'b' to toggle glowing.
 */
 #include <stdio.h>
-#include <stdarg.h>
 #include <string.h>
 #include <assert.h>
 
