@@ -143,12 +143,14 @@ int main(int argc, char** argv)
       .render_pass = gfx_get_main_pass(&window)
     });
 
+  // Create pipeline for rect generation (Fourier transform).
   GFX_Pipeline fourier_pipeline;
   {
     const char* shaders[] = { "shaders/fourier_transform.comp.spv" };
     gfx_create_compute_pipelines(&fourier_pipeline, 1, shaders);
   }
 
+  // Allocate descriptor sets for fourier_pipeline. Nothing special.
   GFX_Descriptor_Set fourier_ds;
   {
     GFX_Descriptor_Set_Binding bindings[2] = {
@@ -201,6 +203,7 @@ int main(int argc, char** argv)
     transform_info.samples = num_samples;
     transform_info.freqs = num_samples>>1;
 
+    // Perform fourier transform and generate rects to render.
     gfx_bind_pipeline(&fourier_pipeline);
     gfx_bind_descriptor_sets(&fourier_ds, 1);
     gfx_push_constants(&transform_info, sizeof(transform_info));
@@ -227,10 +230,12 @@ int main(int argc, char** argv)
 
   }
 
+  // If we don't pause the music SDL2 will crash weirdly.
   SDL_PauseAudio(1);
 
   gfx_wait_idle_gpu();
 
+  // Free resources, who even does this.
   gfx_destroy_pipeline(&rect_pipeline);
   gfx_destroy_pipeline(&fourier_pipeline);
   gfx_destroy_buffer(&vertex_buffer);
