@@ -41,6 +41,8 @@ void main() {
     ampl += sample4[i].w * imag_exp(-2.0 *  PI * k * float(4*i+3) * inv_N);
   }
   ampl *= inv_N;
+  // increase amplitude so the picture looks more dramatic
+  ampl *= 3.0;
   float X = length(ampl);
 
   // write 6 vertices

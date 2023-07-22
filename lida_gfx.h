@@ -453,6 +453,8 @@ void gfx_dispatch(uint32_t x, uint32_t y, uint32_t z);
 void gfx_barrier(GFX_Pipeline_Stage src_stage, GFX_Pipeline_Stage dst_stage, const GFX_Image_Barrier* barriers, uint32_t count);
 #define gfx_compute_to_compute_barrier(barriers, count) gfx_barrier(GFX_PIPELINE_STAGE_COMPUTE_SHADER, GFX_PIPELINE_STAGE_COMPUTE_SHADER, barriers, count)
 
+void gfx_clear_attachment(const GFX_Clear_Color* clear_color, uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+
 int gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, uint32_t count, GFX_Memory_Properties properties);
 int gfx_allocate_memory_for_images(GFX_Memory_Block* memory, GFX_Image* images, uint32_t count, GFX_Memory_Properties properties);
 void gfx_free_memory(GFX_Memory_Block* memory);

@@ -1,5 +1,15 @@
 /**
-   Equalizer using Fast Fourier Transform (hopefully).
+   A simple equalizer using Discrete Fourier Transform.
+
+   This sample demonstrates a simple equalizer which is implemented
+   entirely on GPU. On CPU side we only load the music, play and send
+   it to GPU. On GPU side a compute shader does fourier transform and
+   generates vertices and then renders them as rects. Fast fourier
+   transform is hard to implement on GPU so I did a very basic DFT.
+
+   Usage: pass path to WAV file as command line argument to this sample.
+   Press ESC to exit.
+
  */
 #include <stdio.h>
 #include <string.h>
@@ -11,17 +21,29 @@
 
 uint8_t* audio_pos;
 uint32_t audio_len;
+SDL_AudioSpec wav_spec;
+const int num_samples = 512;
+float* samples_mapped;
 
 void
 my_audio_callback(void *userdata, Uint8 *stream, int len)
 {
   if (audio_len ==0)
     return;
-  printf("len=%d audio_len=%u\n", len, audio_len);
+  // printf("len=%d audio_len=%u\n", len, audio_len);
 
   len = ( len > audio_len ? audio_len : len );
-  //SDL_memcpy (stream, audio_pos, len);                                  // simply copy from one buffer into the other
-  SDL_MixAudio(stream, audio_pos, len, SDL_MIX_MAXVOLUME);// mix from one buffer into another
+  SDL_memcpy (stream, audio_pos, len);
+
+  // NOTE: we support only signed 16-bit integers for now.
+  const int16_t* samples = (const int16_t*)audio_pos;
+  for (int i = 0; i < num_samples/2; i++) {
+    samples_mapped[i] = (float)samples[i*wav_spec.channels] / INT16_MAX;
+  }
+  int step = len / num_samples / 2;
+  for (int i = num_samples/2; i < num_samples; i++) {
+    samples_mapped[i] = (float)samples[step*i*wav_spec.channels] / INT16_MAX;
+  }
 
   audio_pos += len;
   audio_len -= len;
@@ -57,7 +79,6 @@ int main(int argc, char** argv)
 
   uint32_t wav_length;
   uint8_t* wav_buffer;
-  SDL_AudioSpec wav_spec;
   if (SDL_LoadWAV(argv[1], &wav_spec, &wav_buffer, &wav_length) == NULL) {
     printf("failed to load music file form '%s' with error '%s'\n", argv[1], SDL_GetError());
     return -2;
@@ -77,7 +98,7 @@ int main(int argc, char** argv)
 
   if ( SDL_OpenAudio(&wav_spec, NULL) < 0 ){
     printf("Couldn't open audio: %s\n", SDL_GetError());
-    exit(-1);
+    return -3;
   }
 
   SDL_PauseAudio(0);
@@ -94,18 +115,7 @@ int main(int argc, char** argv)
     vertex_buffer = buffers[0];
     sample_buffer = buffers[1];
   }
-
-  // Fill the sample buffer.
-  const int num_samples = 256;
-  {
-    float* samples = gfx_get_buffer_data(&sample_buffer);
-    for (int i = 0; i < num_samples; i++) {
-      const float pi = 3.14159265358979;
-      float t = (float)i / num_samples;
-      // samples[i] = 1.5 * sin(2*pi*2*t) + 1.6 * sin(2*pi*8*t);
-      samples[i] = 1.5 * sin(2*pi*2*t) + 0.7 * sin(2*pi*8*t) + 1.2 * cos(2*pi*32.3*t);
-    }
-  }
+  samples_mapped = gfx_get_buffer_data(&sample_buffer);
 
   // Create pipeline for rect rendering.
   GFX_Vertex_Binding vertex_binding = {
@@ -202,6 +212,9 @@ int main(int argc, char** argv)
     {
       gfx_begin_main_pass(&window);
 
+      GFX_Clear_Color clear_color = { 0.0f, 0.0f, 0.0f, 0.0f };
+      gfx_clear_attachment(&clear_color, 0, 0, window_width, window_height);
+
       gfx_bind_pipeline(&rect_pipeline);
       uint64_t offset = 0;
       gfx_bind_vertex_buffers(&vertex_buffer, 1, &offset);
@@ -213,6 +226,8 @@ int main(int argc, char** argv)
     gfx_submit_and_present(&window);
 
   }
+
+  SDL_PauseAudio(1);
 
   gfx_wait_idle_gpu();
 

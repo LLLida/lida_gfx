@@ -33,3 +33,11 @@ Hello world!
  - a compute pass to do bloom
 
 [[./images/teapots.png]]
+
+** Equalizer
+
+ - does a Fourier transform of incoming music
+ - the job is entirely done on GPU
+ - image shows result of this sample on Lady Gaga's "Monster" song
+
+[[./images/equalizer_lady_gaga_monster.png]]

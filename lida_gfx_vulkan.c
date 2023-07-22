@@ -3945,6 +3945,25 @@ gfx_barrier(GFX_Pipeline_Stage src_stage, GFX_Pipeline_Stage dst_stage,
                        count, image_barriers);
 }
 
+void
+gfx_clear_attachment(const GFX_Clear_Color* clear_color, uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+{
+  VkClearAttachment clear_attachment = {
+    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, // TODO: support aspect other than color
+    .colorAttachment = 0
+  };
+  memcpy(&clear_attachment.clearValue, clear_color, sizeof(GFX_Clear_Color));
+  VkClearRect clear_rect = {
+    .rect = (VkRect2D) {
+      .offset = {x, y},
+      .extent = {w, h}
+    },
+    .baseArrayLayer = 0,
+    .layerCount = 1
+  };
+  vkCmdClearAttachments(g.current_cmd, 1, &clear_attachment, 1, &clear_rect);
+}
+
 int
 gfx_allocate_memory_for_buffers(GFX_Memory_Block* memory, GFX_Buffer* buffers, uint32_t count, GFX_Memory_Properties properties)
 {
