@@ -58,7 +58,6 @@ void main() {
   const vec3 high_color = vec3(1.0, 0.2, 1.0);
 
   for (int i = 0; i < 6; i++) {
-    // verts[index*6+i].position.x = sample4[0].x;
     verts[index*6+i].position = offsets[i] * vec2(1.0 / out_freqs, X) + vec2(float(index) / out_freqs, 0.0);
     verts[index*6+i].color = mix(low_color, high_color, X);
   }

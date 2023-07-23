@@ -467,6 +467,10 @@ int gfx_copy_to_buffer(GFX_Buffer* buffer, const void* src, uint32_t offset, uin
 void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets);
 void gfx_bind_index_buffer(GFX_Buffer* buffer, const uint64_t offset);
 
+void gfx_copy_buffer_to_image(GFX_Buffer* buffer, GFX_Image* image,
+                              uint32_t x, uint32_t y, uint32_t z,
+                              uint32_t w, uint32_t h, uint32_t d);
+
 int gfx_create_image(GFX_Image* image, GFX_Image_Usage usage,
                      uint32_t width, uint32_t height, uint32_t depth,
                      GFX_Format format, uint32_t mips, uint32_t levels);
