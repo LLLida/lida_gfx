@@ -1,14 +1,14 @@
 /* -*- mode: c -*-
-              ___         ____   ________      ________
-             |   |       |    | |        \    /        \
-             |   |       |    | |    __   \  /    ___   \
-             |   |       |    | |   |  \   | |   /   \   |
-             |   |       |    | |   |  |   | |   |___|   |
-             |   |       |    | |   |  |   | |           |
-             |   |       |    | |   |  |   | |    ___    |
-             |   |_____  |    | |   |__/   | |   |   |   |
-             |         | |    | |         |  |   |   |   |
-             |_________| |____| |________/   |___|   |___|
+	      ___         ____   ________      ________
+	     |   |       |    | |        \    /        \
+	     |   |       |    | |    __   \  /    ___   \
+	     |   |       |    | |   |  \   | |   /   \   |
+	     |   |       |    | |   |  |   | |   |___|   |
+	     |   |       |    | |   |  |   | |           |
+	     |   |       |    | |   |  |   | |    ___    |
+	     |   |_____  |    | |   |__/   | |   |   |   |
+	     |         | |    | |         |  |   |   |   |
+	     |_________| |____| |________/   |___|   |___|
 
    Graphics abstraction layer for Vulkan.
    Author: Adil Mokhammad
@@ -467,18 +467,24 @@ int gfx_copy_to_buffer(GFX_Buffer* buffer, const void* src, uint32_t offset, uin
 void gfx_bind_vertex_buffers(GFX_Buffer* buffers, uint32_t count, const uint64_t* offsets);
 void gfx_bind_index_buffer(GFX_Buffer* buffer, const uint64_t offset);
 
+void gfx_copy_buffer_to_image_with_offset(GFX_Buffer* buf, GFX_Image* img, uint64_t offset,
+					  uint32_t x, uint32_t y, uint32_t z,
+					  uint32_t w, uint32_t h, uint32_t d);
 void gfx_copy_buffer_to_image(GFX_Buffer* buffer, GFX_Image* image,
-                              uint32_t x, uint32_t y, uint32_t z,
-                              uint32_t w, uint32_t h, uint32_t d);
+			      uint32_t x, uint32_t y, uint32_t z,
+			      uint32_t w, uint32_t h, uint32_t d);
+void gfx_copy_image_to_buffer(GFX_Image* image, GFX_Buffer* buffer,
+			      uint32_t x, uint32_t y, uint32_t z,
+			      uint32_t w, uint32_t h, uint32_t d);
 
 int gfx_create_image(GFX_Image* image, GFX_Image_Usage usage,
-                     uint32_t width, uint32_t height, uint32_t depth,
-                     GFX_Format format, uint32_t mips, uint32_t levels);
+		     uint32_t width, uint32_t height, uint32_t depth,
+		     GFX_Format format, uint32_t mips, uint32_t levels);
 void gfx_destroy_image(GFX_Image* image);
 void gfx_get_image_extent(GFX_Image* image, uint32_t* width, uint32_t* height, uint32_t* depth);
 int gfx_create_texture(GFX_Texture* texture, const GFX_Image* image,
-                       uint32_t first_mip, uint32_t first_layer,
-                       uint32_t num_mips, uint32_t num_layers);
+		       uint32_t first_mip, uint32_t first_layer,
+		       uint32_t num_mips, uint32_t num_layers);
 void gfx_destroy_texture(GFX_Texture* texture);
 
 /**
@@ -487,18 +493,19 @@ void gfx_destroy_texture(GFX_Texture* texture);
    desired resources.
    */
 int gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
-                                 const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
-                                 int resetable);
+				 const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
+				 int resetable);
 int gfx_free_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets);
 /**
    NOTE: passing 'range=0' means use whole buffer.
    */
 void gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_Type type,
-                           const GFX_Buffer* buffer, uint32_t offset, uint32_t range);
+			   const GFX_Buffer* buffer, uint32_t offset, uint32_t range);
 void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding,
-                                    const GFX_Texture* texture, GFX_Image_Layout layout, int is_linear_filter, GFX_Sampler_Address_Mode mode);
+				    const GFX_Texture* texture, GFX_Image_Layout layout, int is_linear_filter, GFX_Sampler_Address_Mode mode);
 void gfx_descriptor_storage_texture(GFX_Descriptor_Set set, uint32_t binding, const GFX_Texture* texture);
 void gfx_batch_update_descriptor_sets();
+void gfx_clear_color_image(GFX_Image* image, GFX_Image_Layout layout);
 
 #ifdef __cplusplus
 }

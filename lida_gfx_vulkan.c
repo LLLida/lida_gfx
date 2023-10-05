@@ -372,20 +372,20 @@ lru_cache_get(LRU_Cache* lru, const void* obj, int* flag)
 
       // move to front
       if (*next != lru->first) {
-        if (node->prev != -1) {
-          Node_Header* left = lru_cache_ith(lru, node->prev);
-          left->next = node->next;
-          if (*next == lru->last)
-            lru->last = left->prev;
-        }
-        if (node->next != -1) {
-          Node_Header* right = lru_cache_ith(lru, node->next);
-          right->prev = node->prev;
-        }
-        node->prev = -1;          // debug
-        node->next = lru->first;
-        lru_cache_ith(lru, lru->first)->prev = *next;
-        lru->first = *next;
+	if (node->prev != -1) {
+	  Node_Header* left = lru_cache_ith(lru, node->prev);
+	  left->next = node->next;
+	  if (*next == lru->last)
+	    lru->last = left->prev;
+	}
+	if (node->next != -1) {
+	  Node_Header* right = lru_cache_ith(lru, node->next);
+	  right->prev = node->prev;
+	}
+	node->prev = -1;          // debug
+	node->next = lru->first;
+	lru_cache_ith(lru, lru->first)->prev = *next;
+	lru->first = *next;
       }
 
       if (flag) *flag = 0;
@@ -411,7 +411,7 @@ lru_cache_get(LRU_Cache* lru, const void* obj, int* flag)
     } else {
       lru->ht_data[id] = node->list;
       while (node->list != -1) {
-        node = lru_cache_ith(lru, node->list);
+	node = lru_cache_ith(lru, node->list);
       }
       next = &node->list;
     }
@@ -623,7 +623,7 @@ push_mem_right(uint32_t bytes)
   return ret;
 }
 
-uint32_t count_set_bits(uint32_t n)
+static uint32_t count_set_bits(uint32_t n)
 {
   uint32_t count = 0;
   while (n) {
@@ -721,861 +721,861 @@ typedef enum SpvExecutionMode_ {
 } SpvExecutionMode;
 
 typedef enum SpvStorageClass_ {
-    SpvStorageClassUniformConstant = 0,
-    SpvStorageClassInput = 1,
-    SpvStorageClassUniform = 2,
-    SpvStorageClassOutput = 3,
-    SpvStorageClassWorkgroup = 4,
-    SpvStorageClassCrossWorkgroup = 5,
-    SpvStorageClassPrivate = 6,
-    SpvStorageClassFunction = 7,
-    SpvStorageClassGeneric = 8,
-    SpvStorageClassPushConstant = 9,
-    SpvStorageClassAtomicCounter = 10,
-    SpvStorageClassImage = 11,
-    SpvStorageClassStorageBuffer = 12,
-    SpvStorageClassMax = 0x7fffffff,
+  SpvStorageClassUniformConstant = 0,
+  SpvStorageClassInput = 1,
+  SpvStorageClassUniform = 2,
+  SpvStorageClassOutput = 3,
+  SpvStorageClassWorkgroup = 4,
+  SpvStorageClassCrossWorkgroup = 5,
+  SpvStorageClassPrivate = 6,
+  SpvStorageClassFunction = 7,
+  SpvStorageClassGeneric = 8,
+  SpvStorageClassPushConstant = 9,
+  SpvStorageClassAtomicCounter = 10,
+  SpvStorageClassImage = 11,
+  SpvStorageClassStorageBuffer = 12,
+  SpvStorageClassMax = 0x7fffffff,
 } SpvStorageClass;
 
 typedef enum SpvDim_ {
-    SpvDim1D = 0,
-    SpvDim2D = 1,
-    SpvDim3D = 2,
-    SpvDimCube = 3,
-    SpvDimRect = 4,
-    SpvDimBuffer = 5,
-    SpvDimSubpassData = 6,
-    SpvDimMax = 0x7fffffff,
+  SpvDim1D = 0,
+  SpvDim2D = 1,
+  SpvDim3D = 2,
+  SpvDimCube = 3,
+  SpvDimRect = 4,
+  SpvDimBuffer = 5,
+  SpvDimSubpassData = 6,
+  SpvDimMax = 0x7fffffff,
 } SpvDim;
 
 typedef enum SpvSamplerAddressingMode_ {
-    SpvSamplerAddressingModeNone = 0,
-    SpvSamplerAddressingModeClampToEdge = 1,
-    SpvSamplerAddressingModeClamp = 2,
-    SpvSamplerAddressingModeRepeat = 3,
-    SpvSamplerAddressingModeRepeatMirrored = 4,
-    SpvSamplerAddressingModeMax = 0x7fffffff,
+  SpvSamplerAddressingModeNone = 0,
+  SpvSamplerAddressingModeClampToEdge = 1,
+  SpvSamplerAddressingModeClamp = 2,
+  SpvSamplerAddressingModeRepeat = 3,
+  SpvSamplerAddressingModeRepeatMirrored = 4,
+  SpvSamplerAddressingModeMax = 0x7fffffff,
 } SpvSamplerAddressingMode;
 
 typedef enum SpvSamplerFilterMode_ {
-    SpvSamplerFilterModeNearest = 0,
-    SpvSamplerFilterModeLinear = 1,
-    SpvSamplerFilterModeMax = 0x7fffffff,
+  SpvSamplerFilterModeNearest = 0,
+  SpvSamplerFilterModeLinear = 1,
+  SpvSamplerFilterModeMax = 0x7fffffff,
 } SpvSamplerFilterMode;
 
 typedef enum SpvImageFormat_ {
-    SpvImageFormatUnknown = 0,
-    SpvImageFormatRgba32f = 1,
-    SpvImageFormatRgba16f = 2,
-    SpvImageFormatR32f = 3,
-    SpvImageFormatRgba8 = 4,
-    SpvImageFormatRgba8Snorm = 5,
-    SpvImageFormatRg32f = 6,
-    SpvImageFormatRg16f = 7,
-    SpvImageFormatR11fG11fB10f = 8,
-    SpvImageFormatR16f = 9,
-    SpvImageFormatRgba16 = 10,
-    SpvImageFormatRgb10A2 = 11,
-    SpvImageFormatRg16 = 12,
-    SpvImageFormatRg8 = 13,
-    SpvImageFormatR16 = 14,
-    SpvImageFormatR8 = 15,
-    SpvImageFormatRgba16Snorm = 16,
-    SpvImageFormatRg16Snorm = 17,
-    SpvImageFormatRg8Snorm = 18,
-    SpvImageFormatR16Snorm = 19,
-    SpvImageFormatR8Snorm = 20,
-    SpvImageFormatRgba32i = 21,
-    SpvImageFormatRgba16i = 22,
-    SpvImageFormatRgba8i = 23,
-    SpvImageFormatR32i = 24,
-    SpvImageFormatRg32i = 25,
-    SpvImageFormatRg16i = 26,
-    SpvImageFormatRg8i = 27,
-    SpvImageFormatR16i = 28,
-    SpvImageFormatR8i = 29,
-    SpvImageFormatRgba32ui = 30,
-    SpvImageFormatRgba16ui = 31,
-    SpvImageFormatRgba8ui = 32,
-    SpvImageFormatR32ui = 33,
-    SpvImageFormatRgb10a2ui = 34,
-    SpvImageFormatRg32ui = 35,
-    SpvImageFormatRg16ui = 36,
-    SpvImageFormatRg8ui = 37,
-    SpvImageFormatR16ui = 38,
-    SpvImageFormatR8ui = 39,
-    SpvImageFormatMax = 0x7fffffff,
+  SpvImageFormatUnknown = 0,
+  SpvImageFormatRgba32f = 1,
+  SpvImageFormatRgba16f = 2,
+  SpvImageFormatR32f = 3,
+  SpvImageFormatRgba8 = 4,
+  SpvImageFormatRgba8Snorm = 5,
+  SpvImageFormatRg32f = 6,
+  SpvImageFormatRg16f = 7,
+  SpvImageFormatR11fG11fB10f = 8,
+  SpvImageFormatR16f = 9,
+  SpvImageFormatRgba16 = 10,
+  SpvImageFormatRgb10A2 = 11,
+  SpvImageFormatRg16 = 12,
+  SpvImageFormatRg8 = 13,
+  SpvImageFormatR16 = 14,
+  SpvImageFormatR8 = 15,
+  SpvImageFormatRgba16Snorm = 16,
+  SpvImageFormatRg16Snorm = 17,
+  SpvImageFormatRg8Snorm = 18,
+  SpvImageFormatR16Snorm = 19,
+  SpvImageFormatR8Snorm = 20,
+  SpvImageFormatRgba32i = 21,
+  SpvImageFormatRgba16i = 22,
+  SpvImageFormatRgba8i = 23,
+  SpvImageFormatR32i = 24,
+  SpvImageFormatRg32i = 25,
+  SpvImageFormatRg16i = 26,
+  SpvImageFormatRg8i = 27,
+  SpvImageFormatR16i = 28,
+  SpvImageFormatR8i = 29,
+  SpvImageFormatRgba32ui = 30,
+  SpvImageFormatRgba16ui = 31,
+  SpvImageFormatRgba8ui = 32,
+  SpvImageFormatR32ui = 33,
+  SpvImageFormatRgb10a2ui = 34,
+  SpvImageFormatRg32ui = 35,
+  SpvImageFormatRg16ui = 36,
+  SpvImageFormatRg8ui = 37,
+  SpvImageFormatR16ui = 38,
+  SpvImageFormatR8ui = 39,
+  SpvImageFormatMax = 0x7fffffff,
 } SpvImageFormat;
 
 typedef enum SpvImageChannelOrder_ {
-    SpvImageChannelOrderR = 0,
-    SpvImageChannelOrderA = 1,
-    SpvImageChannelOrderRG = 2,
-    SpvImageChannelOrderRA = 3,
-    SpvImageChannelOrderRGB = 4,
-    SpvImageChannelOrderRGBA = 5,
-    SpvImageChannelOrderBGRA = 6,
-    SpvImageChannelOrderARGB = 7,
-    SpvImageChannelOrderIntensity = 8,
-    SpvImageChannelOrderLuminance = 9,
-    SpvImageChannelOrderRx = 10,
-    SpvImageChannelOrderRGx = 11,
-    SpvImageChannelOrderRGBx = 12,
-    SpvImageChannelOrderDepth = 13,
-    SpvImageChannelOrderDepthStencil = 14,
-    SpvImageChannelOrdersRGB = 15,
-    SpvImageChannelOrdersRGBx = 16,
-    SpvImageChannelOrdersRGBA = 17,
-    SpvImageChannelOrdersBGRA = 18,
-    SpvImageChannelOrderABGR = 19,
-    SpvImageChannelOrderMax = 0x7fffffff,
+  SpvImageChannelOrderR = 0,
+  SpvImageChannelOrderA = 1,
+  SpvImageChannelOrderRG = 2,
+  SpvImageChannelOrderRA = 3,
+  SpvImageChannelOrderRGB = 4,
+  SpvImageChannelOrderRGBA = 5,
+  SpvImageChannelOrderBGRA = 6,
+  SpvImageChannelOrderARGB = 7,
+  SpvImageChannelOrderIntensity = 8,
+  SpvImageChannelOrderLuminance = 9,
+  SpvImageChannelOrderRx = 10,
+  SpvImageChannelOrderRGx = 11,
+  SpvImageChannelOrderRGBx = 12,
+  SpvImageChannelOrderDepth = 13,
+  SpvImageChannelOrderDepthStencil = 14,
+  SpvImageChannelOrdersRGB = 15,
+  SpvImageChannelOrdersRGBx = 16,
+  SpvImageChannelOrdersRGBA = 17,
+  SpvImageChannelOrdersBGRA = 18,
+  SpvImageChannelOrderABGR = 19,
+  SpvImageChannelOrderMax = 0x7fffffff,
 } SpvImageChannelOrder;
 
 typedef enum SpvImageChannelDataType_ {
-    SpvImageChannelDataTypeSnormInt8 = 0,
-    SpvImageChannelDataTypeSnormInt16 = 1,
-    SpvImageChannelDataTypeUnormInt8 = 2,
-    SpvImageChannelDataTypeUnormInt16 = 3,
-    SpvImageChannelDataTypeUnormShort565 = 4,
-    SpvImageChannelDataTypeUnormShort555 = 5,
-    SpvImageChannelDataTypeUnormInt101010 = 6,
-    SpvImageChannelDataTypeSignedInt8 = 7,
-    SpvImageChannelDataTypeSignedInt16 = 8,
-    SpvImageChannelDataTypeSignedInt32 = 9,
-    SpvImageChannelDataTypeUnsignedInt8 = 10,
-    SpvImageChannelDataTypeUnsignedInt16 = 11,
-    SpvImageChannelDataTypeUnsignedInt32 = 12,
-    SpvImageChannelDataTypeHalfFloat = 13,
-    SpvImageChannelDataTypeFloat = 14,
-    SpvImageChannelDataTypeUnormInt24 = 15,
-    SpvImageChannelDataTypeUnormInt101010_2 = 16,
-    SpvImageChannelDataTypeMax = 0x7fffffff,
+  SpvImageChannelDataTypeSnormInt8 = 0,
+  SpvImageChannelDataTypeSnormInt16 = 1,
+  SpvImageChannelDataTypeUnormInt8 = 2,
+  SpvImageChannelDataTypeUnormInt16 = 3,
+  SpvImageChannelDataTypeUnormShort565 = 4,
+  SpvImageChannelDataTypeUnormShort555 = 5,
+  SpvImageChannelDataTypeUnormInt101010 = 6,
+  SpvImageChannelDataTypeSignedInt8 = 7,
+  SpvImageChannelDataTypeSignedInt16 = 8,
+  SpvImageChannelDataTypeSignedInt32 = 9,
+  SpvImageChannelDataTypeUnsignedInt8 = 10,
+  SpvImageChannelDataTypeUnsignedInt16 = 11,
+  SpvImageChannelDataTypeUnsignedInt32 = 12,
+  SpvImageChannelDataTypeHalfFloat = 13,
+  SpvImageChannelDataTypeFloat = 14,
+  SpvImageChannelDataTypeUnormInt24 = 15,
+  SpvImageChannelDataTypeUnormInt101010_2 = 16,
+  SpvImageChannelDataTypeMax = 0x7fffffff,
 } SpvImageChannelDataType;
 
 typedef enum SpvImageOperandsShift_ {
-    SpvImageOperandsBiasShift = 0,
-    SpvImageOperandsLodShift = 1,
-    SpvImageOperandsGradShift = 2,
-    SpvImageOperandsConstOffsetShift = 3,
-    SpvImageOperandsOffsetShift = 4,
-    SpvImageOperandsConstOffsetsShift = 5,
-    SpvImageOperandsSampleShift = 6,
-    SpvImageOperandsMinLodShift = 7,
-    SpvImageOperandsMax = 0x7fffffff,
+  SpvImageOperandsBiasShift = 0,
+  SpvImageOperandsLodShift = 1,
+  SpvImageOperandsGradShift = 2,
+  SpvImageOperandsConstOffsetShift = 3,
+  SpvImageOperandsOffsetShift = 4,
+  SpvImageOperandsConstOffsetsShift = 5,
+  SpvImageOperandsSampleShift = 6,
+  SpvImageOperandsMinLodShift = 7,
+  SpvImageOperandsMax = 0x7fffffff,
 } SpvImageOperandsShift;
 
 typedef enum SpvImageOperandsMask_ {
-    SpvImageOperandsMaskNone = 0,
-    SpvImageOperandsBiasMask = 0x00000001,
-    SpvImageOperandsLodMask = 0x00000002,
-    SpvImageOperandsGradMask = 0x00000004,
-    SpvImageOperandsConstOffsetMask = 0x00000008,
-    SpvImageOperandsOffsetMask = 0x00000010,
-    SpvImageOperandsConstOffsetsMask = 0x00000020,
-    SpvImageOperandsSampleMask = 0x00000040,
-    SpvImageOperandsMinLodMask = 0x00000080,
+  SpvImageOperandsMaskNone = 0,
+  SpvImageOperandsBiasMask = 0x00000001,
+  SpvImageOperandsLodMask = 0x00000002,
+  SpvImageOperandsGradMask = 0x00000004,
+  SpvImageOperandsConstOffsetMask = 0x00000008,
+  SpvImageOperandsOffsetMask = 0x00000010,
+  SpvImageOperandsConstOffsetsMask = 0x00000020,
+  SpvImageOperandsSampleMask = 0x00000040,
+  SpvImageOperandsMinLodMask = 0x00000080,
 } SpvImageOperandsMask;
 
 typedef enum SpvFPFastMathModeShift_ {
-    SpvFPFastMathModeNotNaNShift = 0,
-    SpvFPFastMathModeNotInfShift = 1,
-    SpvFPFastMathModeNSZShift = 2,
-    SpvFPFastMathModeAllowRecipShift = 3,
-    SpvFPFastMathModeFastShift = 4,
-    SpvFPFastMathModeMax = 0x7fffffff,
+  SpvFPFastMathModeNotNaNShift = 0,
+  SpvFPFastMathModeNotInfShift = 1,
+  SpvFPFastMathModeNSZShift = 2,
+  SpvFPFastMathModeAllowRecipShift = 3,
+  SpvFPFastMathModeFastShift = 4,
+  SpvFPFastMathModeMax = 0x7fffffff,
 } SpvFPFastMathModeShift;
 
 typedef enum SpvFPFastMathModeMask_ {
-    SpvFPFastMathModeMaskNone = 0,
-    SpvFPFastMathModeNotNaNMask = 0x00000001,
-    SpvFPFastMathModeNotInfMask = 0x00000002,
-    SpvFPFastMathModeNSZMask = 0x00000004,
-    SpvFPFastMathModeAllowRecipMask = 0x00000008,
-    SpvFPFastMathModeFastMask = 0x00000010,
+  SpvFPFastMathModeMaskNone = 0,
+  SpvFPFastMathModeNotNaNMask = 0x00000001,
+  SpvFPFastMathModeNotInfMask = 0x00000002,
+  SpvFPFastMathModeNSZMask = 0x00000004,
+  SpvFPFastMathModeAllowRecipMask = 0x00000008,
+  SpvFPFastMathModeFastMask = 0x00000010,
 } SpvFPFastMathModeMask;
 
 typedef enum SpvFPRoundingMode_ {
-    SpvFPRoundingModeRTE = 0,
-    SpvFPRoundingModeRTZ = 1,
-    SpvFPRoundingModeRTP = 2,
-    SpvFPRoundingModeRTN = 3,
-    SpvFPRoundingModeMax = 0x7fffffff,
+  SpvFPRoundingModeRTE = 0,
+  SpvFPRoundingModeRTZ = 1,
+  SpvFPRoundingModeRTP = 2,
+  SpvFPRoundingModeRTN = 3,
+  SpvFPRoundingModeMax = 0x7fffffff,
 } SpvFPRoundingMode;
 
 typedef enum SpvLinkageType_ {
-    SpvLinkageTypeExport = 0,
-    SpvLinkageTypeImport = 1,
-    SpvLinkageTypeMax = 0x7fffffff,
+  SpvLinkageTypeExport = 0,
+  SpvLinkageTypeImport = 1,
+  SpvLinkageTypeMax = 0x7fffffff,
 } SpvLinkageType;
 
 typedef enum SpvAccessQualifier_ {
-    SpvAccessQualifierReadOnly = 0,
-    SpvAccessQualifierWriteOnly = 1,
-    SpvAccessQualifierReadWrite = 2,
-    SpvAccessQualifierMax = 0x7fffffff,
+  SpvAccessQualifierReadOnly = 0,
+  SpvAccessQualifierWriteOnly = 1,
+  SpvAccessQualifierReadWrite = 2,
+  SpvAccessQualifierMax = 0x7fffffff,
 } SpvAccessQualifier;
 
 typedef enum SpvFunctionParameterAttribute_ {
-    SpvFunctionParameterAttributeZext = 0,
-    SpvFunctionParameterAttributeSext = 1,
-    SpvFunctionParameterAttributeByVal = 2,
-    SpvFunctionParameterAttributeSret = 3,
-    SpvFunctionParameterAttributeNoAlias = 4,
-    SpvFunctionParameterAttributeNoCapture = 5,
-    SpvFunctionParameterAttributeNoWrite = 6,
-    SpvFunctionParameterAttributeNoReadWrite = 7,
-    SpvFunctionParameterAttributeMax = 0x7fffffff,
+  SpvFunctionParameterAttributeZext = 0,
+  SpvFunctionParameterAttributeSext = 1,
+  SpvFunctionParameterAttributeByVal = 2,
+  SpvFunctionParameterAttributeSret = 3,
+  SpvFunctionParameterAttributeNoAlias = 4,
+  SpvFunctionParameterAttributeNoCapture = 5,
+  SpvFunctionParameterAttributeNoWrite = 6,
+  SpvFunctionParameterAttributeNoReadWrite = 7,
+  SpvFunctionParameterAttributeMax = 0x7fffffff,
 } SpvFunctionParameterAttribute;
 
 typedef enum SpvDecoration_ {
-    SpvDecorationRelaxedPrecision = 0,
-    SpvDecorationSpecId = 1,
-    SpvDecorationBlock = 2,
-    SpvDecorationBufferBlock = 3,
-    SpvDecorationRowMajor = 4,
-    SpvDecorationColMajor = 5,
-    SpvDecorationArrayStride = 6,
-    SpvDecorationMatrixStride = 7,
-    SpvDecorationGLSLShared = 8,
-    SpvDecorationGLSLPacked = 9,
-    SpvDecorationCPacked = 10,
-    SpvDecorationBuiltIn = 11,
-    SpvDecorationNoPerspective = 13,
-    SpvDecorationFlat = 14,
-    SpvDecorationPatch = 15,
-    SpvDecorationCentroid = 16,
-    SpvDecorationSample = 17,
-    SpvDecorationInvariant = 18,
-    SpvDecorationRestrict = 19,
-    SpvDecorationAliased = 20,
-    SpvDecorationVolatile = 21,
-    SpvDecorationConstant = 22,
-    SpvDecorationCoherent = 23,
-    SpvDecorationNonWritable = 24,
-    SpvDecorationNonReadable = 25,
-    SpvDecorationUniform = 26,
-    SpvDecorationSaturatedConversion = 28,
-    SpvDecorationStream = 29,
-    SpvDecorationLocation = 30,
-    SpvDecorationComponent = 31,
-    SpvDecorationIndex = 32,
-    SpvDecorationBinding = 33,
-    SpvDecorationDescriptorSet = 34,
-    SpvDecorationOffset = 35,
-    SpvDecorationXfbBuffer = 36,
-    SpvDecorationXfbStride = 37,
-    SpvDecorationFuncParamAttr = 38,
-    SpvDecorationFPRoundingMode = 39,
-    SpvDecorationFPFastMathMode = 40,
-    SpvDecorationLinkageAttributes = 41,
-    SpvDecorationNoContraction = 42,
-    SpvDecorationInputAttachmentIndex = 43,
-    SpvDecorationAlignment = 44,
-    SpvDecorationExplicitInterpAMD = 4999,
-    SpvDecorationOverrideCoverageNV = 5248,
-    SpvDecorationPassthroughNV = 5250,
-    SpvDecorationViewportRelativeNV = 5252,
-    SpvDecorationSecondaryViewportRelativeNV = 5256,
-    SpvDecorationHlslCounterBufferGOOGLE = 5634,
-    SpvDecorationHlslSemanticGOOGLE = 5635,
-    SpvDecorationMax = 0x7fffffff,
+  SpvDecorationRelaxedPrecision = 0,
+  SpvDecorationSpecId = 1,
+  SpvDecorationBlock = 2,
+  SpvDecorationBufferBlock = 3,
+  SpvDecorationRowMajor = 4,
+  SpvDecorationColMajor = 5,
+  SpvDecorationArrayStride = 6,
+  SpvDecorationMatrixStride = 7,
+  SpvDecorationGLSLShared = 8,
+  SpvDecorationGLSLPacked = 9,
+  SpvDecorationCPacked = 10,
+  SpvDecorationBuiltIn = 11,
+  SpvDecorationNoPerspective = 13,
+  SpvDecorationFlat = 14,
+  SpvDecorationPatch = 15,
+  SpvDecorationCentroid = 16,
+  SpvDecorationSample = 17,
+  SpvDecorationInvariant = 18,
+  SpvDecorationRestrict = 19,
+  SpvDecorationAliased = 20,
+  SpvDecorationVolatile = 21,
+  SpvDecorationConstant = 22,
+  SpvDecorationCoherent = 23,
+  SpvDecorationNonWritable = 24,
+  SpvDecorationNonReadable = 25,
+  SpvDecorationUniform = 26,
+  SpvDecorationSaturatedConversion = 28,
+  SpvDecorationStream = 29,
+  SpvDecorationLocation = 30,
+  SpvDecorationComponent = 31,
+  SpvDecorationIndex = 32,
+  SpvDecorationBinding = 33,
+  SpvDecorationDescriptorSet = 34,
+  SpvDecorationOffset = 35,
+  SpvDecorationXfbBuffer = 36,
+  SpvDecorationXfbStride = 37,
+  SpvDecorationFuncParamAttr = 38,
+  SpvDecorationFPRoundingMode = 39,
+  SpvDecorationFPFastMathMode = 40,
+  SpvDecorationLinkageAttributes = 41,
+  SpvDecorationNoContraction = 42,
+  SpvDecorationInputAttachmentIndex = 43,
+  SpvDecorationAlignment = 44,
+  SpvDecorationExplicitInterpAMD = 4999,
+  SpvDecorationOverrideCoverageNV = 5248,
+  SpvDecorationPassthroughNV = 5250,
+  SpvDecorationViewportRelativeNV = 5252,
+  SpvDecorationSecondaryViewportRelativeNV = 5256,
+  SpvDecorationHlslCounterBufferGOOGLE = 5634,
+  SpvDecorationHlslSemanticGOOGLE = 5635,
+  SpvDecorationMax = 0x7fffffff,
 } SpvDecoration;
 
 typedef enum SpvBuiltIn_ {
-    SpvBuiltInPosition = 0,
-    SpvBuiltInPointSize = 1,
-    SpvBuiltInClipDistance = 3,
-    SpvBuiltInCullDistance = 4,
-    SpvBuiltInVertexId = 5,
-    SpvBuiltInInstanceId = 6,
-    SpvBuiltInPrimitiveId = 7,
-    SpvBuiltInInvocationId = 8,
-    SpvBuiltInLayer = 9,
-    SpvBuiltInViewportIndex = 10,
-    SpvBuiltInTessLevelOuter = 11,
-    SpvBuiltInTessLevelInner = 12,
-    SpvBuiltInTessCoord = 13,
-    SpvBuiltInPatchVertices = 14,
-    SpvBuiltInFragCoord = 15,
-    SpvBuiltInPointCoord = 16,
-    SpvBuiltInFrontFacing = 17,
-    SpvBuiltInSampleId = 18,
-    SpvBuiltInSamplePosition = 19,
-    SpvBuiltInSampleMask = 20,
-    SpvBuiltInFragDepth = 22,
-    SpvBuiltInHelperInvocation = 23,
-    SpvBuiltInNumWorkgroups = 24,
-    SpvBuiltInWorkgroupSize = 25,
-    SpvBuiltInWorkgroupId = 26,
-    SpvBuiltInLocalInvocationId = 27,
-    SpvBuiltInGlobalInvocationId = 28,
-    SpvBuiltInLocalInvocationIndex = 29,
-    SpvBuiltInWorkDim = 30,
-    SpvBuiltInGlobalSize = 31,
-    SpvBuiltInEnqueuedWorkgroupSize = 32,
-    SpvBuiltInGlobalOffset = 33,
-    SpvBuiltInGlobalLinearId = 34,
-    SpvBuiltInSubgroupSize = 36,
-    SpvBuiltInSubgroupMaxSize = 37,
-    SpvBuiltInNumSubgroups = 38,
-    SpvBuiltInNumEnqueuedSubgroups = 39,
-    SpvBuiltInSubgroupId = 40,
-    SpvBuiltInSubgroupLocalInvocationId = 41,
-    SpvBuiltInVertexIndex = 42,
-    SpvBuiltInInstanceIndex = 43,
-    SpvBuiltInSubgroupEqMaskKHR = 4416,
-    SpvBuiltInSubgroupGeMaskKHR = 4417,
-    SpvBuiltInSubgroupGtMaskKHR = 4418,
-    SpvBuiltInSubgroupLeMaskKHR = 4419,
-    SpvBuiltInSubgroupLtMaskKHR = 4420,
-    SpvBuiltInBaseVertex = 4424,
-    SpvBuiltInBaseInstance = 4425,
-    SpvBuiltInDrawIndex = 4426,
-    SpvBuiltInDeviceIndex = 4438,
-    SpvBuiltInViewIndex = 4440,
-    SpvBuiltInBaryCoordNoPerspAMD = 4992,
-    SpvBuiltInBaryCoordNoPerspCentroidAMD = 4993,
-    SpvBuiltInBaryCoordNoPerspSampleAMD = 4994,
-    SpvBuiltInBaryCoordSmoothAMD = 4995,
-    SpvBuiltInBaryCoordSmoothCentroidAMD = 4996,
-    SpvBuiltInBaryCoordSmoothSampleAMD = 4997,
-    SpvBuiltInBaryCoordPullModelAMD = 4998,
-    SpvBuiltInFragStencilRefEXT = 5014,
-    SpvBuiltInViewportMaskNV = 5253,
-    SpvBuiltInSecondaryPositionNV = 5257,
-    SpvBuiltInSecondaryViewportMaskNV = 5258,
-    SpvBuiltInPositionPerViewNV = 5261,
-    SpvBuiltInViewportMaskPerViewNV = 5262,
-    SpvBuiltInMax = 0x7fffffff,
+  SpvBuiltInPosition = 0,
+  SpvBuiltInPointSize = 1,
+  SpvBuiltInClipDistance = 3,
+  SpvBuiltInCullDistance = 4,
+  SpvBuiltInVertexId = 5,
+  SpvBuiltInInstanceId = 6,
+  SpvBuiltInPrimitiveId = 7,
+  SpvBuiltInInvocationId = 8,
+  SpvBuiltInLayer = 9,
+  SpvBuiltInViewportIndex = 10,
+  SpvBuiltInTessLevelOuter = 11,
+  SpvBuiltInTessLevelInner = 12,
+  SpvBuiltInTessCoord = 13,
+  SpvBuiltInPatchVertices = 14,
+  SpvBuiltInFragCoord = 15,
+  SpvBuiltInPointCoord = 16,
+  SpvBuiltInFrontFacing = 17,
+  SpvBuiltInSampleId = 18,
+  SpvBuiltInSamplePosition = 19,
+  SpvBuiltInSampleMask = 20,
+  SpvBuiltInFragDepth = 22,
+  SpvBuiltInHelperInvocation = 23,
+  SpvBuiltInNumWorkgroups = 24,
+  SpvBuiltInWorkgroupSize = 25,
+  SpvBuiltInWorkgroupId = 26,
+  SpvBuiltInLocalInvocationId = 27,
+  SpvBuiltInGlobalInvocationId = 28,
+  SpvBuiltInLocalInvocationIndex = 29,
+  SpvBuiltInWorkDim = 30,
+  SpvBuiltInGlobalSize = 31,
+  SpvBuiltInEnqueuedWorkgroupSize = 32,
+  SpvBuiltInGlobalOffset = 33,
+  SpvBuiltInGlobalLinearId = 34,
+  SpvBuiltInSubgroupSize = 36,
+  SpvBuiltInSubgroupMaxSize = 37,
+  SpvBuiltInNumSubgroups = 38,
+  SpvBuiltInNumEnqueuedSubgroups = 39,
+  SpvBuiltInSubgroupId = 40,
+  SpvBuiltInSubgroupLocalInvocationId = 41,
+  SpvBuiltInVertexIndex = 42,
+  SpvBuiltInInstanceIndex = 43,
+  SpvBuiltInSubgroupEqMaskKHR = 4416,
+  SpvBuiltInSubgroupGeMaskKHR = 4417,
+  SpvBuiltInSubgroupGtMaskKHR = 4418,
+  SpvBuiltInSubgroupLeMaskKHR = 4419,
+  SpvBuiltInSubgroupLtMaskKHR = 4420,
+  SpvBuiltInBaseVertex = 4424,
+  SpvBuiltInBaseInstance = 4425,
+  SpvBuiltInDrawIndex = 4426,
+  SpvBuiltInDeviceIndex = 4438,
+  SpvBuiltInViewIndex = 4440,
+  SpvBuiltInBaryCoordNoPerspAMD = 4992,
+  SpvBuiltInBaryCoordNoPerspCentroidAMD = 4993,
+  SpvBuiltInBaryCoordNoPerspSampleAMD = 4994,
+  SpvBuiltInBaryCoordSmoothAMD = 4995,
+  SpvBuiltInBaryCoordSmoothCentroidAMD = 4996,
+  SpvBuiltInBaryCoordSmoothSampleAMD = 4997,
+  SpvBuiltInBaryCoordPullModelAMD = 4998,
+  SpvBuiltInFragStencilRefEXT = 5014,
+  SpvBuiltInViewportMaskNV = 5253,
+  SpvBuiltInSecondaryPositionNV = 5257,
+  SpvBuiltInSecondaryViewportMaskNV = 5258,
+  SpvBuiltInPositionPerViewNV = 5261,
+  SpvBuiltInViewportMaskPerViewNV = 5262,
+  SpvBuiltInMax = 0x7fffffff,
 } SpvBuiltIn;
 
 typedef enum SpvSelectionControlShift_ {
-    SpvSelectionControlFlattenShift = 0,
-    SpvSelectionControlDontFlattenShift = 1,
-    SpvSelectionControlMax = 0x7fffffff,
+  SpvSelectionControlFlattenShift = 0,
+  SpvSelectionControlDontFlattenShift = 1,
+  SpvSelectionControlMax = 0x7fffffff,
 } SpvSelectionControlShift;
 
 typedef enum SpvSelectionControlMask_ {
-    SpvSelectionControlMaskNone = 0,
-    SpvSelectionControlFlattenMask = 0x00000001,
-    SpvSelectionControlDontFlattenMask = 0x00000002,
+  SpvSelectionControlMaskNone = 0,
+  SpvSelectionControlFlattenMask = 0x00000001,
+  SpvSelectionControlDontFlattenMask = 0x00000002,
 } SpvSelectionControlMask;
 
 typedef enum SpvLoopControlShift_ {
-    SpvLoopControlUnrollShift = 0,
-    SpvLoopControlDontUnrollShift = 1,
-    SpvLoopControlMax = 0x7fffffff,
+  SpvLoopControlUnrollShift = 0,
+  SpvLoopControlDontUnrollShift = 1,
+  SpvLoopControlMax = 0x7fffffff,
 } SpvLoopControlShift;
 
 typedef enum SpvLoopControlMask_ {
-    SpvLoopControlMaskNone = 0,
-    SpvLoopControlUnrollMask = 0x00000001,
-    SpvLoopControlDontUnrollMask = 0x00000002,
+  SpvLoopControlMaskNone = 0,
+  SpvLoopControlUnrollMask = 0x00000001,
+  SpvLoopControlDontUnrollMask = 0x00000002,
 } SpvLoopControlMask;
 
 typedef enum SpvFunctionControlShift_ {
-    SpvFunctionControlInlineShift = 0,
-    SpvFunctionControlDontInlineShift = 1,
-    SpvFunctionControlPureShift = 2,
-    SpvFunctionControlConstShift = 3,
-    SpvFunctionControlMax = 0x7fffffff,
+  SpvFunctionControlInlineShift = 0,
+  SpvFunctionControlDontInlineShift = 1,
+  SpvFunctionControlPureShift = 2,
+  SpvFunctionControlConstShift = 3,
+  SpvFunctionControlMax = 0x7fffffff,
 } SpvFunctionControlShift;
 
 typedef enum SpvFunctionControlMask_ {
-    SpvFunctionControlMaskNone = 0,
-    SpvFunctionControlInlineMask = 0x00000001,
-    SpvFunctionControlDontInlineMask = 0x00000002,
-    SpvFunctionControlPureMask = 0x00000004,
-    SpvFunctionControlConstMask = 0x00000008,
+  SpvFunctionControlMaskNone = 0,
+  SpvFunctionControlInlineMask = 0x00000001,
+  SpvFunctionControlDontInlineMask = 0x00000002,
+  SpvFunctionControlPureMask = 0x00000004,
+  SpvFunctionControlConstMask = 0x00000008,
 } SpvFunctionControlMask;
 
 typedef enum SpvMemorySemanticsShift_ {
-    SpvMemorySemanticsAcquireShift = 1,
-    SpvMemorySemanticsReleaseShift = 2,
-    SpvMemorySemanticsAcquireReleaseShift = 3,
-    SpvMemorySemanticsSequentiallyConsistentShift = 4,
-    SpvMemorySemanticsUniformMemoryShift = 6,
-    SpvMemorySemanticsSubgroupMemoryShift = 7,
-    SpvMemorySemanticsWorkgroupMemoryShift = 8,
-    SpvMemorySemanticsCrossWorkgroupMemoryShift = 9,
-    SpvMemorySemanticsAtomicCounterMemoryShift = 10,
-    SpvMemorySemanticsImageMemoryShift = 11,
-    SpvMemorySemanticsMax = 0x7fffffff,
+  SpvMemorySemanticsAcquireShift = 1,
+  SpvMemorySemanticsReleaseShift = 2,
+  SpvMemorySemanticsAcquireReleaseShift = 3,
+  SpvMemorySemanticsSequentiallyConsistentShift = 4,
+  SpvMemorySemanticsUniformMemoryShift = 6,
+  SpvMemorySemanticsSubgroupMemoryShift = 7,
+  SpvMemorySemanticsWorkgroupMemoryShift = 8,
+  SpvMemorySemanticsCrossWorkgroupMemoryShift = 9,
+  SpvMemorySemanticsAtomicCounterMemoryShift = 10,
+  SpvMemorySemanticsImageMemoryShift = 11,
+  SpvMemorySemanticsMax = 0x7fffffff,
 } SpvMemorySemanticsShift;
 
 typedef enum SpvMemorySemanticsMask_ {
-    SpvMemorySemanticsMaskNone = 0,
-    SpvMemorySemanticsAcquireMask = 0x00000002,
-    SpvMemorySemanticsReleaseMask = 0x00000004,
-    SpvMemorySemanticsAcquireReleaseMask = 0x00000008,
-    SpvMemorySemanticsSequentiallyConsistentMask = 0x00000010,
-    SpvMemorySemanticsUniformMemoryMask = 0x00000040,
-    SpvMemorySemanticsSubgroupMemoryMask = 0x00000080,
-    SpvMemorySemanticsWorkgroupMemoryMask = 0x00000100,
-    SpvMemorySemanticsCrossWorkgroupMemoryMask = 0x00000200,
-    SpvMemorySemanticsAtomicCounterMemoryMask = 0x00000400,
-    SpvMemorySemanticsImageMemoryMask = 0x00000800,
+  SpvMemorySemanticsMaskNone = 0,
+  SpvMemorySemanticsAcquireMask = 0x00000002,
+  SpvMemorySemanticsReleaseMask = 0x00000004,
+  SpvMemorySemanticsAcquireReleaseMask = 0x00000008,
+  SpvMemorySemanticsSequentiallyConsistentMask = 0x00000010,
+  SpvMemorySemanticsUniformMemoryMask = 0x00000040,
+  SpvMemorySemanticsSubgroupMemoryMask = 0x00000080,
+  SpvMemorySemanticsWorkgroupMemoryMask = 0x00000100,
+  SpvMemorySemanticsCrossWorkgroupMemoryMask = 0x00000200,
+  SpvMemorySemanticsAtomicCounterMemoryMask = 0x00000400,
+  SpvMemorySemanticsImageMemoryMask = 0x00000800,
 } SpvMemorySemanticsMask;
 
 typedef enum SpvMemoryAccessShift_ {
-    SpvMemoryAccessVolatileShift = 0,
-    SpvMemoryAccessAlignedShift = 1,
-    SpvMemoryAccessNontemporalShift = 2,
-    SpvMemoryAccessMax = 0x7fffffff,
+  SpvMemoryAccessVolatileShift = 0,
+  SpvMemoryAccessAlignedShift = 1,
+  SpvMemoryAccessNontemporalShift = 2,
+  SpvMemoryAccessMax = 0x7fffffff,
 } SpvMemoryAccessShift;
 
 typedef enum SpvMemoryAccessMask_ {
-    SpvMemoryAccessMaskNone = 0,
-    SpvMemoryAccessVolatileMask = 0x00000001,
-    SpvMemoryAccessAlignedMask = 0x00000002,
-    SpvMemoryAccessNontemporalMask = 0x00000004,
+  SpvMemoryAccessMaskNone = 0,
+  SpvMemoryAccessVolatileMask = 0x00000001,
+  SpvMemoryAccessAlignedMask = 0x00000002,
+  SpvMemoryAccessNontemporalMask = 0x00000004,
 } SpvMemoryAccessMask;
 
 typedef enum SpvScope_ {
-    SpvScopeCrossDevice = 0,
-    SpvScopeDevice = 1,
-    SpvScopeWorkgroup = 2,
-    SpvScopeSubgroup = 3,
-    SpvScopeInvocation = 4,
-    SpvScopeMax = 0x7fffffff,
+  SpvScopeCrossDevice = 0,
+  SpvScopeDevice = 1,
+  SpvScopeWorkgroup = 2,
+  SpvScopeSubgroup = 3,
+  SpvScopeInvocation = 4,
+  SpvScopeMax = 0x7fffffff,
 } SpvScope;
 
 typedef enum SpvGroupOperation_ {
-    SpvGroupOperationReduce = 0,
-    SpvGroupOperationInclusiveScan = 1,
-    SpvGroupOperationExclusiveScan = 2,
-    SpvGroupOperationMax = 0x7fffffff,
+  SpvGroupOperationReduce = 0,
+  SpvGroupOperationInclusiveScan = 1,
+  SpvGroupOperationExclusiveScan = 2,
+  SpvGroupOperationMax = 0x7fffffff,
 } SpvGroupOperation;
 
 typedef enum SpvKernelEnqueueFlags_ {
-    SpvKernelEnqueueFlagsNoWait = 0,
-    SpvKernelEnqueueFlagsWaitKernel = 1,
-    SpvKernelEnqueueFlagsWaitWorkGroup = 2,
-    SpvKernelEnqueueFlagsMax = 0x7fffffff,
+  SpvKernelEnqueueFlagsNoWait = 0,
+  SpvKernelEnqueueFlagsWaitKernel = 1,
+  SpvKernelEnqueueFlagsWaitWorkGroup = 2,
+  SpvKernelEnqueueFlagsMax = 0x7fffffff,
 } SpvKernelEnqueueFlags;
 
 typedef enum SpvKernelProfilingInfoShift_ {
-    SpvKernelProfilingInfoCmdExecTimeShift = 0,
-    SpvKernelProfilingInfoMax = 0x7fffffff,
+  SpvKernelProfilingInfoCmdExecTimeShift = 0,
+  SpvKernelProfilingInfoMax = 0x7fffffff,
 } SpvKernelProfilingInfoShift;
 
 typedef enum SpvKernelProfilingInfoMask_ {
-    SpvKernelProfilingInfoMaskNone = 0,
-    SpvKernelProfilingInfoCmdExecTimeMask = 0x00000001,
+  SpvKernelProfilingInfoMaskNone = 0,
+  SpvKernelProfilingInfoCmdExecTimeMask = 0x00000001,
 } SpvKernelProfilingInfoMask;
 
 typedef enum SpvCapability_ {
-    SpvCapabilityMatrix = 0,
-    SpvCapabilityShader = 1,
-    SpvCapabilityGeometry = 2,
-    SpvCapabilityTessellation = 3,
-    SpvCapabilityAddresses = 4,
-    SpvCapabilityLinkage = 5,
-    SpvCapabilityKernel = 6,
-    SpvCapabilityVector16 = 7,
-    SpvCapabilityFloat16Buffer = 8,
-    SpvCapabilityFloat16 = 9,
-    SpvCapabilityFloat64 = 10,
-    SpvCapabilityInt64 = 11,
-    SpvCapabilityInt64Atomics = 12,
-    SpvCapabilityImageBasic = 13,
-    SpvCapabilityImageReadWrite = 14,
-    SpvCapabilityImageMipmap = 15,
-    SpvCapabilityPipes = 17,
-    SpvCapabilityGroups = 18,
-    SpvCapabilityDeviceEnqueue = 19,
-    SpvCapabilityLiteralSampler = 20,
-    SpvCapabilityAtomicStorage = 21,
-    SpvCapabilityInt16 = 22,
-    SpvCapabilityTessellationPointSize = 23,
-    SpvCapabilityGeometryPointSize = 24,
-    SpvCapabilityImageGatherExtended = 25,
-    SpvCapabilityStorageImageMultisample = 27,
-    SpvCapabilityUniformBufferArrayDynamicIndexing = 28,
-    SpvCapabilitySampledImageArrayDynamicIndexing = 29,
-    SpvCapabilityStorageBufferArrayDynamicIndexing = 30,
-    SpvCapabilityStorageImageArrayDynamicIndexing = 31,
-    SpvCapabilityClipDistance = 32,
-    SpvCapabilityCullDistance = 33,
-    SpvCapabilityImageCubeArray = 34,
-    SpvCapabilitySampleRateShading = 35,
-    SpvCapabilityImageRect = 36,
-    SpvCapabilitySampledRect = 37,
-    SpvCapabilityGenericPointer = 38,
-    SpvCapabilityInt8 = 39,
-    SpvCapabilityInputAttachment = 40,
-    SpvCapabilitySparseResidency = 41,
-    SpvCapabilityMinLod = 42,
-    SpvCapabilitySampled1D = 43,
-    SpvCapabilityImage1D = 44,
-    SpvCapabilitySampledCubeArray = 45,
-    SpvCapabilitySampledBuffer = 46,
-    SpvCapabilityImageBuffer = 47,
-    SpvCapabilityImageMSArray = 48,
-    SpvCapabilityStorageImageExtendedFormats = 49,
-    SpvCapabilityImageQuery = 50,
-    SpvCapabilityDerivativeControl = 51,
-    SpvCapabilityInterpolationFunction = 52,
-    SpvCapabilityTransformFeedback = 53,
-    SpvCapabilityGeometryStreams = 54,
-    SpvCapabilityStorageImageReadWithoutFormat = 55,
-    SpvCapabilityStorageImageWriteWithoutFormat = 56,
-    SpvCapabilityMultiViewport = 57,
-    SpvCapabilitySubgroupBallotKHR = 4423,
-    SpvCapabilityDrawParameters = 4427,
-    SpvCapabilitySubgroupVoteKHR = 4431,
-    SpvCapabilityStorageBuffer16BitAccess = 4433,
-    SpvCapabilityStorageUniformBufferBlock16 = 4433,
-    SpvCapabilityStorageUniform16 = 4434,
-    SpvCapabilityUniformAndStorageBuffer16BitAccess = 4434,
-    SpvCapabilityStoragePushConstant16 = 4435,
-    SpvCapabilityStorageInputOutput16 = 4436,
-    SpvCapabilityDeviceGroup = 4437,
-    SpvCapabilityMultiView = 4439,
-    SpvCapabilityVariablePointersStorageBuffer = 4441,
-    SpvCapabilityVariablePointers = 4442,
-    SpvCapabilityAtomicStorageOps = 4445,
-    SpvCapabilitySampleMaskPostDepthCoverage = 4447,
-    SpvCapabilityImageGatherBiasLodAMD = 5009,
-    SpvCapabilityFragmentMaskAMD = 5010,
-    SpvCapabilityStencilExportEXT = 5013,
-    SpvCapabilityImageReadWriteLodAMD = 5015,
-    SpvCapabilitySampleMaskOverrideCoverageNV = 5249,
-    SpvCapabilityGeometryShaderPassthroughNV = 5251,
-    SpvCapabilityShaderViewportIndexLayerEXT = 5254,
-    SpvCapabilityShaderViewportIndexLayerNV = 5254,
-    SpvCapabilityShaderViewportMaskNV = 5255,
-    SpvCapabilityShaderStereoViewNV = 5259,
-    SpvCapabilityPerViewAttributesNV = 5260,
-    SpvCapabilitySubgroupShuffleINTEL = 5568,
-    SpvCapabilitySubgroupBufferBlockIOINTEL = 5569,
-    SpvCapabilitySubgroupImageBlockIOINTEL = 5570,
-    SpvCapabilityMax = 0x7fffffff,
+  SpvCapabilityMatrix = 0,
+  SpvCapabilityShader = 1,
+  SpvCapabilityGeometry = 2,
+  SpvCapabilityTessellation = 3,
+  SpvCapabilityAddresses = 4,
+  SpvCapabilityLinkage = 5,
+  SpvCapabilityKernel = 6,
+  SpvCapabilityVector16 = 7,
+  SpvCapabilityFloat16Buffer = 8,
+  SpvCapabilityFloat16 = 9,
+  SpvCapabilityFloat64 = 10,
+  SpvCapabilityInt64 = 11,
+  SpvCapabilityInt64Atomics = 12,
+  SpvCapabilityImageBasic = 13,
+  SpvCapabilityImageReadWrite = 14,
+  SpvCapabilityImageMipmap = 15,
+  SpvCapabilityPipes = 17,
+  SpvCapabilityGroups = 18,
+  SpvCapabilityDeviceEnqueue = 19,
+  SpvCapabilityLiteralSampler = 20,
+  SpvCapabilityAtomicStorage = 21,
+  SpvCapabilityInt16 = 22,
+  SpvCapabilityTessellationPointSize = 23,
+  SpvCapabilityGeometryPointSize = 24,
+  SpvCapabilityImageGatherExtended = 25,
+  SpvCapabilityStorageImageMultisample = 27,
+  SpvCapabilityUniformBufferArrayDynamicIndexing = 28,
+  SpvCapabilitySampledImageArrayDynamicIndexing = 29,
+  SpvCapabilityStorageBufferArrayDynamicIndexing = 30,
+  SpvCapabilityStorageImageArrayDynamicIndexing = 31,
+  SpvCapabilityClipDistance = 32,
+  SpvCapabilityCullDistance = 33,
+  SpvCapabilityImageCubeArray = 34,
+  SpvCapabilitySampleRateShading = 35,
+  SpvCapabilityImageRect = 36,
+  SpvCapabilitySampledRect = 37,
+  SpvCapabilityGenericPointer = 38,
+  SpvCapabilityInt8 = 39,
+  SpvCapabilityInputAttachment = 40,
+  SpvCapabilitySparseResidency = 41,
+  SpvCapabilityMinLod = 42,
+  SpvCapabilitySampled1D = 43,
+  SpvCapabilityImage1D = 44,
+  SpvCapabilitySampledCubeArray = 45,
+  SpvCapabilitySampledBuffer = 46,
+  SpvCapabilityImageBuffer = 47,
+  SpvCapabilityImageMSArray = 48,
+  SpvCapabilityStorageImageExtendedFormats = 49,
+  SpvCapabilityImageQuery = 50,
+  SpvCapabilityDerivativeControl = 51,
+  SpvCapabilityInterpolationFunction = 52,
+  SpvCapabilityTransformFeedback = 53,
+  SpvCapabilityGeometryStreams = 54,
+  SpvCapabilityStorageImageReadWithoutFormat = 55,
+  SpvCapabilityStorageImageWriteWithoutFormat = 56,
+  SpvCapabilityMultiViewport = 57,
+  SpvCapabilitySubgroupBallotKHR = 4423,
+  SpvCapabilityDrawParameters = 4427,
+  SpvCapabilitySubgroupVoteKHR = 4431,
+  SpvCapabilityStorageBuffer16BitAccess = 4433,
+  SpvCapabilityStorageUniformBufferBlock16 = 4433,
+  SpvCapabilityStorageUniform16 = 4434,
+  SpvCapabilityUniformAndStorageBuffer16BitAccess = 4434,
+  SpvCapabilityStoragePushConstant16 = 4435,
+  SpvCapabilityStorageInputOutput16 = 4436,
+  SpvCapabilityDeviceGroup = 4437,
+  SpvCapabilityMultiView = 4439,
+  SpvCapabilityVariablePointersStorageBuffer = 4441,
+  SpvCapabilityVariablePointers = 4442,
+  SpvCapabilityAtomicStorageOps = 4445,
+  SpvCapabilitySampleMaskPostDepthCoverage = 4447,
+  SpvCapabilityImageGatherBiasLodAMD = 5009,
+  SpvCapabilityFragmentMaskAMD = 5010,
+  SpvCapabilityStencilExportEXT = 5013,
+  SpvCapabilityImageReadWriteLodAMD = 5015,
+  SpvCapabilitySampleMaskOverrideCoverageNV = 5249,
+  SpvCapabilityGeometryShaderPassthroughNV = 5251,
+  SpvCapabilityShaderViewportIndexLayerEXT = 5254,
+  SpvCapabilityShaderViewportIndexLayerNV = 5254,
+  SpvCapabilityShaderViewportMaskNV = 5255,
+  SpvCapabilityShaderStereoViewNV = 5259,
+  SpvCapabilityPerViewAttributesNV = 5260,
+  SpvCapabilitySubgroupShuffleINTEL = 5568,
+  SpvCapabilitySubgroupBufferBlockIOINTEL = 5569,
+  SpvCapabilitySubgroupImageBlockIOINTEL = 5570,
+  SpvCapabilityMax = 0x7fffffff,
 } SpvCapability;
 
 typedef enum SpvOp_ {
-    SpvOpNop = 0,
-    SpvOpUndef = 1,
-    SpvOpSourceContinued = 2,
-    SpvOpSource = 3,
-    SpvOpSourceExtension = 4,
-    SpvOpName = 5,
-    SpvOpMemberName = 6,
-    SpvOpString = 7,
-    SpvOpLine = 8,
-    SpvOpExtension = 10,
-    SpvOpExtInstImport = 11,
-    SpvOpExtInst = 12,
-    SpvOpMemoryModel = 14,
-    SpvOpEntryPoint = 15,
-    SpvOpExecutionMode = 16,
-    SpvOpCapability = 17,
-    SpvOpTypeVoid = 19,
-    SpvOpTypeBool = 20,
-    SpvOpTypeInt = 21,
-    SpvOpTypeFloat = 22,
-    SpvOpTypeVector = 23,
-    SpvOpTypeMatrix = 24,
-    SpvOpTypeImage = 25,
-    SpvOpTypeSampler = 26,
-    SpvOpTypeSampledImage = 27,
-    SpvOpTypeArray = 28,
-    SpvOpTypeRuntimeArray = 29,
-    SpvOpTypeStruct = 30,
-    SpvOpTypeOpaque = 31,
-    SpvOpTypePointer = 32,
-    SpvOpTypeFunction = 33,
-    SpvOpTypeEvent = 34,
-    SpvOpTypeDeviceEvent = 35,
-    SpvOpTypeReserveId = 36,
-    SpvOpTypeQueue = 37,
-    SpvOpTypePipe = 38,
-    SpvOpTypeForwardPointer = 39,
-    SpvOpConstantTrue = 41,
-    SpvOpConstantFalse = 42,
-    SpvOpConstant = 43,
-    SpvOpConstantComposite = 44,
-    SpvOpConstantSampler = 45,
-    SpvOpConstantNull = 46,
-    SpvOpSpecConstantTrue = 48,
-    SpvOpSpecConstantFalse = 49,
-    SpvOpSpecConstant = 50,
-    SpvOpSpecConstantComposite = 51,
-    SpvOpSpecConstantOp = 52,
-    SpvOpFunction = 54,
-    SpvOpFunctionParameter = 55,
-    SpvOpFunctionEnd = 56,
-    SpvOpFunctionCall = 57,
-    SpvOpVariable = 59,
-    SpvOpImageTexelPointer = 60,
-    SpvOpLoad = 61,
-    SpvOpStore = 62,
-    SpvOpCopyMemory = 63,
-    SpvOpCopyMemorySized = 64,
-    SpvOpAccessChain = 65,
-    SpvOpInBoundsAccessChain = 66,
-    SpvOpPtrAccessChain = 67,
-    SpvOpArrayLength = 68,
-    SpvOpGenericPtrMemSemantics = 69,
-    SpvOpInBoundsPtrAccessChain = 70,
-    SpvOpDecorate = 71,
-    SpvOpMemberDecorate = 72,
-    SpvOpDecorationGroup = 73,
-    SpvOpGroupDecorate = 74,
-    SpvOpGroupMemberDecorate = 75,
-    SpvOpVectorExtractDynamic = 77,
-    SpvOpVectorInsertDynamic = 78,
-    SpvOpVectorShuffle = 79,
-    SpvOpCompositeConstruct = 80,
-    SpvOpCompositeExtract = 81,
-    SpvOpCompositeInsert = 82,
-    SpvOpCopyObject = 83,
-    SpvOpTranspose = 84,
-    SpvOpSampledImage = 86,
-    SpvOpImageSampleImplicitLod = 87,
-    SpvOpImageSampleExplicitLod = 88,
-    SpvOpImageSampleDrefImplicitLod = 89,
-    SpvOpImageSampleDrefExplicitLod = 90,
-    SpvOpImageSampleProjImplicitLod = 91,
-    SpvOpImageSampleProjExplicitLod = 92,
-    SpvOpImageSampleProjDrefImplicitLod = 93,
-    SpvOpImageSampleProjDrefExplicitLod = 94,
-    SpvOpImageFetch = 95,
-    SpvOpImageGather = 96,
-    SpvOpImageDrefGather = 97,
-    SpvOpImageRead = 98,
-    SpvOpImageWrite = 99,
-    SpvOpImage = 100,
-    SpvOpImageQueryFormat = 101,
-    SpvOpImageQueryOrder = 102,
-    SpvOpImageQuerySizeLod = 103,
-    SpvOpImageQuerySize = 104,
-    SpvOpImageQueryLod = 105,
-    SpvOpImageQueryLevels = 106,
-    SpvOpImageQuerySamples = 107,
-    SpvOpConvertFToU = 109,
-    SpvOpConvertFToS = 110,
-    SpvOpConvertSToF = 111,
-    SpvOpConvertUToF = 112,
-    SpvOpUConvert = 113,
-    SpvOpSConvert = 114,
-    SpvOpFConvert = 115,
-    SpvOpQuantizeToF16 = 116,
-    SpvOpConvertPtrToU = 117,
-    SpvOpSatConvertSToU = 118,
-    SpvOpSatConvertUToS = 119,
-    SpvOpConvertUToPtr = 120,
-    SpvOpPtrCastToGeneric = 121,
-    SpvOpGenericCastToPtr = 122,
-    SpvOpGenericCastToPtrExplicit = 123,
-    SpvOpBitcast = 124,
-    SpvOpSNegate = 126,
-    SpvOpFNegate = 127,
-    SpvOpIAdd = 128,
-    SpvOpFAdd = 129,
-    SpvOpISub = 130,
-    SpvOpFSub = 131,
-    SpvOpIMul = 132,
-    SpvOpFMul = 133,
-    SpvOpUDiv = 134,
-    SpvOpSDiv = 135,
-    SpvOpFDiv = 136,
-    SpvOpUMod = 137,
-    SpvOpSRem = 138,
-    SpvOpSMod = 139,
-    SpvOpFRem = 140,
-    SpvOpFMod = 141,
-    SpvOpVectorTimesScalar = 142,
-    SpvOpMatrixTimesScalar = 143,
-    SpvOpVectorTimesMatrix = 144,
-    SpvOpMatrixTimesVector = 145,
-    SpvOpMatrixTimesMatrix = 146,
-    SpvOpOuterProduct = 147,
-    SpvOpDot = 148,
-    SpvOpIAddCarry = 149,
-    SpvOpISubBorrow = 150,
-    SpvOpUMulExtended = 151,
-    SpvOpSMulExtended = 152,
-    SpvOpAny = 154,
-    SpvOpAll = 155,
-    SpvOpIsNan = 156,
-    SpvOpIsInf = 157,
-    SpvOpIsFinite = 158,
-    SpvOpIsNormal = 159,
-    SpvOpSignBitSet = 160,
-    SpvOpLessOrGreater = 161,
-    SpvOpOrdered = 162,
-    SpvOpUnordered = 163,
-    SpvOpLogicalEqual = 164,
-    SpvOpLogicalNotEqual = 165,
-    SpvOpLogicalOr = 166,
-    SpvOpLogicalAnd = 167,
-    SpvOpLogicalNot = 168,
-    SpvOpSelect = 169,
-    SpvOpIEqual = 170,
-    SpvOpINotEqual = 171,
-    SpvOpUGreaterThan = 172,
-    SpvOpSGreaterThan = 173,
-    SpvOpUGreaterThanEqual = 174,
-    SpvOpSGreaterThanEqual = 175,
-    SpvOpULessThan = 176,
-    SpvOpSLessThan = 177,
-    SpvOpULessThanEqual = 178,
-    SpvOpSLessThanEqual = 179,
-    SpvOpFOrdEqual = 180,
-    SpvOpFUnordEqual = 181,
-    SpvOpFOrdNotEqual = 182,
-    SpvOpFUnordNotEqual = 183,
-    SpvOpFOrdLessThan = 184,
-    SpvOpFUnordLessThan = 185,
-    SpvOpFOrdGreaterThan = 186,
-    SpvOpFUnordGreaterThan = 187,
-    SpvOpFOrdLessThanEqual = 188,
-    SpvOpFUnordLessThanEqual = 189,
-    SpvOpFOrdGreaterThanEqual = 190,
-    SpvOpFUnordGreaterThanEqual = 191,
-    SpvOpShiftRightLogical = 194,
-    SpvOpShiftRightArithmetic = 195,
-    SpvOpShiftLeftLogical = 196,
-    SpvOpBitwiseOr = 197,
-    SpvOpBitwiseXor = 198,
-    SpvOpBitwiseAnd = 199,
-    SpvOpNot = 200,
-    SpvOpBitFieldInsert = 201,
-    SpvOpBitFieldSExtract = 202,
-    SpvOpBitFieldUExtract = 203,
-    SpvOpBitReverse = 204,
-    SpvOpBitCount = 205,
-    SpvOpDPdx = 207,
-    SpvOpDPdy = 208,
-    SpvOpFwidth = 209,
-    SpvOpDPdxFine = 210,
-    SpvOpDPdyFine = 211,
-    SpvOpFwidthFine = 212,
-    SpvOpDPdxCoarse = 213,
-    SpvOpDPdyCoarse = 214,
-    SpvOpFwidthCoarse = 215,
-    SpvOpEmitVertex = 218,
-    SpvOpEndPrimitive = 219,
-    SpvOpEmitStreamVertex = 220,
-    SpvOpEndStreamPrimitive = 221,
-    SpvOpControlBarrier = 224,
-    SpvOpMemoryBarrier = 225,
-    SpvOpAtomicLoad = 227,
-    SpvOpAtomicStore = 228,
-    SpvOpAtomicExchange = 229,
-    SpvOpAtomicCompareExchange = 230,
-    SpvOpAtomicCompareExchangeWeak = 231,
-    SpvOpAtomicIIncrement = 232,
-    SpvOpAtomicIDecrement = 233,
-    SpvOpAtomicIAdd = 234,
-    SpvOpAtomicISub = 235,
-    SpvOpAtomicSMin = 236,
-    SpvOpAtomicUMin = 237,
-    SpvOpAtomicSMax = 238,
-    SpvOpAtomicUMax = 239,
-    SpvOpAtomicAnd = 240,
-    SpvOpAtomicOr = 241,
-    SpvOpAtomicXor = 242,
-    SpvOpPhi = 245,
-    SpvOpLoopMerge = 246,
-    SpvOpSelectionMerge = 247,
-    SpvOpLabel = 248,
-    SpvOpBranch = 249,
-    SpvOpBranchConditional = 250,
-    SpvOpSwitch = 251,
-    SpvOpKill = 252,
-    SpvOpReturn = 253,
-    SpvOpReturnValue = 254,
-    SpvOpUnreachable = 255,
-    SpvOpLifetimeStart = 256,
-    SpvOpLifetimeStop = 257,
-    SpvOpGroupAsyncCopy = 259,
-    SpvOpGroupWaitEvents = 260,
-    SpvOpGroupAll = 261,
-    SpvOpGroupAny = 262,
-    SpvOpGroupBroadcast = 263,
-    SpvOpGroupIAdd = 264,
-    SpvOpGroupFAdd = 265,
-    SpvOpGroupFMin = 266,
-    SpvOpGroupUMin = 267,
-    SpvOpGroupSMin = 268,
-    SpvOpGroupFMax = 269,
-    SpvOpGroupUMax = 270,
-    SpvOpGroupSMax = 271,
-    SpvOpReadPipe = 274,
-    SpvOpWritePipe = 275,
-    SpvOpReservedReadPipe = 276,
-    SpvOpReservedWritePipe = 277,
-    SpvOpReserveReadPipePackets = 278,
-    SpvOpReserveWritePipePackets = 279,
-    SpvOpCommitReadPipe = 280,
-    SpvOpCommitWritePipe = 281,
-    SpvOpIsValidReserveId = 282,
-    SpvOpGetNumPipePackets = 283,
-    SpvOpGetMaxPipePackets = 284,
-    SpvOpGroupReserveReadPipePackets = 285,
-    SpvOpGroupReserveWritePipePackets = 286,
-    SpvOpGroupCommitReadPipe = 287,
-    SpvOpGroupCommitWritePipe = 288,
-    SpvOpEnqueueMarker = 291,
-    SpvOpEnqueueKernel = 292,
-    SpvOpGetKernelNDrangeSubGroupCount = 293,
-    SpvOpGetKernelNDrangeMaxSubGroupSize = 294,
-    SpvOpGetKernelWorkGroupSize = 295,
-    SpvOpGetKernelPreferredWorkGroupSizeMultiple = 296,
-    SpvOpRetainEvent = 297,
-    SpvOpReleaseEvent = 298,
-    SpvOpCreateUserEvent = 299,
-    SpvOpIsValidEvent = 300,
-    SpvOpSetUserEventStatus = 301,
-    SpvOpCaptureEventProfilingInfo = 302,
-    SpvOpGetDefaultQueue = 303,
-    SpvOpBuildNDRange = 304,
-    SpvOpImageSparseSampleImplicitLod = 305,
-    SpvOpImageSparseSampleExplicitLod = 306,
-    SpvOpImageSparseSampleDrefImplicitLod = 307,
-    SpvOpImageSparseSampleDrefExplicitLod = 308,
-    SpvOpImageSparseSampleProjImplicitLod = 309,
-    SpvOpImageSparseSampleProjExplicitLod = 310,
-    SpvOpImageSparseSampleProjDrefImplicitLod = 311,
-    SpvOpImageSparseSampleProjDrefExplicitLod = 312,
-    SpvOpImageSparseFetch = 313,
-    SpvOpImageSparseGather = 314,
-    SpvOpImageSparseDrefGather = 315,
-    SpvOpImageSparseTexelsResident = 316,
-    SpvOpNoLine = 317,
-    SpvOpAtomicFlagTestAndSet = 318,
-    SpvOpAtomicFlagClear = 319,
-    SpvOpImageSparseRead = 320,
-    SpvOpDecorateId = 332,
-    SpvOpSubgroupBallotKHR = 4421,
-    SpvOpSubgroupFirstInvocationKHR = 4422,
-    SpvOpSubgroupAllKHR = 4428,
-    SpvOpSubgroupAnyKHR = 4429,
-    SpvOpSubgroupAllEqualKHR = 4430,
-    SpvOpSubgroupReadInvocationKHR = 4432,
-    SpvOpGroupIAddNonUniformAMD = 5000,
-    SpvOpGroupFAddNonUniformAMD = 5001,
-    SpvOpGroupFMinNonUniformAMD = 5002,
-    SpvOpGroupUMinNonUniformAMD = 5003,
-    SpvOpGroupSMinNonUniformAMD = 5004,
-    SpvOpGroupFMaxNonUniformAMD = 5005,
-    SpvOpGroupUMaxNonUniformAMD = 5006,
-    SpvOpGroupSMaxNonUniformAMD = 5007,
-    SpvOpFragmentMaskFetchAMD = 5011,
-    SpvOpFragmentFetchAMD = 5012,
-    SpvOpSubgroupShuffleINTEL = 5571,
-    SpvOpSubgroupShuffleDownINTEL = 5572,
-    SpvOpSubgroupShuffleUpINTEL = 5573,
-    SpvOpSubgroupShuffleXorINTEL = 5574,
-    SpvOpSubgroupBlockReadINTEL = 5575,
-    SpvOpSubgroupBlockWriteINTEL = 5576,
-    SpvOpSubgroupImageBlockReadINTEL = 5577,
-    SpvOpSubgroupImageBlockWriteINTEL = 5578,
-    SpvOpDecorateStringGOOGLE = 5632,
-    SpvOpMemberDecorateStringGOOGLE = 5633,
-    SpvOpMax = 0x7fffffff,
+  SpvOpNop = 0,
+  SpvOpUndef = 1,
+  SpvOpSourceContinued = 2,
+  SpvOpSource = 3,
+  SpvOpSourceExtension = 4,
+  SpvOpName = 5,
+  SpvOpMemberName = 6,
+  SpvOpString = 7,
+  SpvOpLine = 8,
+  SpvOpExtension = 10,
+  SpvOpExtInstImport = 11,
+  SpvOpExtInst = 12,
+  SpvOpMemoryModel = 14,
+  SpvOpEntryPoint = 15,
+  SpvOpExecutionMode = 16,
+  SpvOpCapability = 17,
+  SpvOpTypeVoid = 19,
+  SpvOpTypeBool = 20,
+  SpvOpTypeInt = 21,
+  SpvOpTypeFloat = 22,
+  SpvOpTypeVector = 23,
+  SpvOpTypeMatrix = 24,
+  SpvOpTypeImage = 25,
+  SpvOpTypeSampler = 26,
+  SpvOpTypeSampledImage = 27,
+  SpvOpTypeArray = 28,
+  SpvOpTypeRuntimeArray = 29,
+  SpvOpTypeStruct = 30,
+  SpvOpTypeOpaque = 31,
+  SpvOpTypePointer = 32,
+  SpvOpTypeFunction = 33,
+  SpvOpTypeEvent = 34,
+  SpvOpTypeDeviceEvent = 35,
+  SpvOpTypeReserveId = 36,
+  SpvOpTypeQueue = 37,
+  SpvOpTypePipe = 38,
+  SpvOpTypeForwardPointer = 39,
+  SpvOpConstantTrue = 41,
+  SpvOpConstantFalse = 42,
+  SpvOpConstant = 43,
+  SpvOpConstantComposite = 44,
+  SpvOpConstantSampler = 45,
+  SpvOpConstantNull = 46,
+  SpvOpSpecConstantTrue = 48,
+  SpvOpSpecConstantFalse = 49,
+  SpvOpSpecConstant = 50,
+  SpvOpSpecConstantComposite = 51,
+  SpvOpSpecConstantOp = 52,
+  SpvOpFunction = 54,
+  SpvOpFunctionParameter = 55,
+  SpvOpFunctionEnd = 56,
+  SpvOpFunctionCall = 57,
+  SpvOpVariable = 59,
+  SpvOpImageTexelPointer = 60,
+  SpvOpLoad = 61,
+  SpvOpStore = 62,
+  SpvOpCopyMemory = 63,
+  SpvOpCopyMemorySized = 64,
+  SpvOpAccessChain = 65,
+  SpvOpInBoundsAccessChain = 66,
+  SpvOpPtrAccessChain = 67,
+  SpvOpArrayLength = 68,
+  SpvOpGenericPtrMemSemantics = 69,
+  SpvOpInBoundsPtrAccessChain = 70,
+  SpvOpDecorate = 71,
+  SpvOpMemberDecorate = 72,
+  SpvOpDecorationGroup = 73,
+  SpvOpGroupDecorate = 74,
+  SpvOpGroupMemberDecorate = 75,
+  SpvOpVectorExtractDynamic = 77,
+  SpvOpVectorInsertDynamic = 78,
+  SpvOpVectorShuffle = 79,
+  SpvOpCompositeConstruct = 80,
+  SpvOpCompositeExtract = 81,
+  SpvOpCompositeInsert = 82,
+  SpvOpCopyObject = 83,
+  SpvOpTranspose = 84,
+  SpvOpSampledImage = 86,
+  SpvOpImageSampleImplicitLod = 87,
+  SpvOpImageSampleExplicitLod = 88,
+  SpvOpImageSampleDrefImplicitLod = 89,
+  SpvOpImageSampleDrefExplicitLod = 90,
+  SpvOpImageSampleProjImplicitLod = 91,
+  SpvOpImageSampleProjExplicitLod = 92,
+  SpvOpImageSampleProjDrefImplicitLod = 93,
+  SpvOpImageSampleProjDrefExplicitLod = 94,
+  SpvOpImageFetch = 95,
+  SpvOpImageGather = 96,
+  SpvOpImageDrefGather = 97,
+  SpvOpImageRead = 98,
+  SpvOpImageWrite = 99,
+  SpvOpImage = 100,
+  SpvOpImageQueryFormat = 101,
+  SpvOpImageQueryOrder = 102,
+  SpvOpImageQuerySizeLod = 103,
+  SpvOpImageQuerySize = 104,
+  SpvOpImageQueryLod = 105,
+  SpvOpImageQueryLevels = 106,
+  SpvOpImageQuerySamples = 107,
+  SpvOpConvertFToU = 109,
+  SpvOpConvertFToS = 110,
+  SpvOpConvertSToF = 111,
+  SpvOpConvertUToF = 112,
+  SpvOpUConvert = 113,
+  SpvOpSConvert = 114,
+  SpvOpFConvert = 115,
+  SpvOpQuantizeToF16 = 116,
+  SpvOpConvertPtrToU = 117,
+  SpvOpSatConvertSToU = 118,
+  SpvOpSatConvertUToS = 119,
+  SpvOpConvertUToPtr = 120,
+  SpvOpPtrCastToGeneric = 121,
+  SpvOpGenericCastToPtr = 122,
+  SpvOpGenericCastToPtrExplicit = 123,
+  SpvOpBitcast = 124,
+  SpvOpSNegate = 126,
+  SpvOpFNegate = 127,
+  SpvOpIAdd = 128,
+  SpvOpFAdd = 129,
+  SpvOpISub = 130,
+  SpvOpFSub = 131,
+  SpvOpIMul = 132,
+  SpvOpFMul = 133,
+  SpvOpUDiv = 134,
+  SpvOpSDiv = 135,
+  SpvOpFDiv = 136,
+  SpvOpUMod = 137,
+  SpvOpSRem = 138,
+  SpvOpSMod = 139,
+  SpvOpFRem = 140,
+  SpvOpFMod = 141,
+  SpvOpVectorTimesScalar = 142,
+  SpvOpMatrixTimesScalar = 143,
+  SpvOpVectorTimesMatrix = 144,
+  SpvOpMatrixTimesVector = 145,
+  SpvOpMatrixTimesMatrix = 146,
+  SpvOpOuterProduct = 147,
+  SpvOpDot = 148,
+  SpvOpIAddCarry = 149,
+  SpvOpISubBorrow = 150,
+  SpvOpUMulExtended = 151,
+  SpvOpSMulExtended = 152,
+  SpvOpAny = 154,
+  SpvOpAll = 155,
+  SpvOpIsNan = 156,
+  SpvOpIsInf = 157,
+  SpvOpIsFinite = 158,
+  SpvOpIsNormal = 159,
+  SpvOpSignBitSet = 160,
+  SpvOpLessOrGreater = 161,
+  SpvOpOrdered = 162,
+  SpvOpUnordered = 163,
+  SpvOpLogicalEqual = 164,
+  SpvOpLogicalNotEqual = 165,
+  SpvOpLogicalOr = 166,
+  SpvOpLogicalAnd = 167,
+  SpvOpLogicalNot = 168,
+  SpvOpSelect = 169,
+  SpvOpIEqual = 170,
+  SpvOpINotEqual = 171,
+  SpvOpUGreaterThan = 172,
+  SpvOpSGreaterThan = 173,
+  SpvOpUGreaterThanEqual = 174,
+  SpvOpSGreaterThanEqual = 175,
+  SpvOpULessThan = 176,
+  SpvOpSLessThan = 177,
+  SpvOpULessThanEqual = 178,
+  SpvOpSLessThanEqual = 179,
+  SpvOpFOrdEqual = 180,
+  SpvOpFUnordEqual = 181,
+  SpvOpFOrdNotEqual = 182,
+  SpvOpFUnordNotEqual = 183,
+  SpvOpFOrdLessThan = 184,
+  SpvOpFUnordLessThan = 185,
+  SpvOpFOrdGreaterThan = 186,
+  SpvOpFUnordGreaterThan = 187,
+  SpvOpFOrdLessThanEqual = 188,
+  SpvOpFUnordLessThanEqual = 189,
+  SpvOpFOrdGreaterThanEqual = 190,
+  SpvOpFUnordGreaterThanEqual = 191,
+  SpvOpShiftRightLogical = 194,
+  SpvOpShiftRightArithmetic = 195,
+  SpvOpShiftLeftLogical = 196,
+  SpvOpBitwiseOr = 197,
+  SpvOpBitwiseXor = 198,
+  SpvOpBitwiseAnd = 199,
+  SpvOpNot = 200,
+  SpvOpBitFieldInsert = 201,
+  SpvOpBitFieldSExtract = 202,
+  SpvOpBitFieldUExtract = 203,
+  SpvOpBitReverse = 204,
+  SpvOpBitCount = 205,
+  SpvOpDPdx = 207,
+  SpvOpDPdy = 208,
+  SpvOpFwidth = 209,
+  SpvOpDPdxFine = 210,
+  SpvOpDPdyFine = 211,
+  SpvOpFwidthFine = 212,
+  SpvOpDPdxCoarse = 213,
+  SpvOpDPdyCoarse = 214,
+  SpvOpFwidthCoarse = 215,
+  SpvOpEmitVertex = 218,
+  SpvOpEndPrimitive = 219,
+  SpvOpEmitStreamVertex = 220,
+  SpvOpEndStreamPrimitive = 221,
+  SpvOpControlBarrier = 224,
+  SpvOpMemoryBarrier = 225,
+  SpvOpAtomicLoad = 227,
+  SpvOpAtomicStore = 228,
+  SpvOpAtomicExchange = 229,
+  SpvOpAtomicCompareExchange = 230,
+  SpvOpAtomicCompareExchangeWeak = 231,
+  SpvOpAtomicIIncrement = 232,
+  SpvOpAtomicIDecrement = 233,
+  SpvOpAtomicIAdd = 234,
+  SpvOpAtomicISub = 235,
+  SpvOpAtomicSMin = 236,
+  SpvOpAtomicUMin = 237,
+  SpvOpAtomicSMax = 238,
+  SpvOpAtomicUMax = 239,
+  SpvOpAtomicAnd = 240,
+  SpvOpAtomicOr = 241,
+  SpvOpAtomicXor = 242,
+  SpvOpPhi = 245,
+  SpvOpLoopMerge = 246,
+  SpvOpSelectionMerge = 247,
+  SpvOpLabel = 248,
+  SpvOpBranch = 249,
+  SpvOpBranchConditional = 250,
+  SpvOpSwitch = 251,
+  SpvOpKill = 252,
+  SpvOpReturn = 253,
+  SpvOpReturnValue = 254,
+  SpvOpUnreachable = 255,
+  SpvOpLifetimeStart = 256,
+  SpvOpLifetimeStop = 257,
+  SpvOpGroupAsyncCopy = 259,
+  SpvOpGroupWaitEvents = 260,
+  SpvOpGroupAll = 261,
+  SpvOpGroupAny = 262,
+  SpvOpGroupBroadcast = 263,
+  SpvOpGroupIAdd = 264,
+  SpvOpGroupFAdd = 265,
+  SpvOpGroupFMin = 266,
+  SpvOpGroupUMin = 267,
+  SpvOpGroupSMin = 268,
+  SpvOpGroupFMax = 269,
+  SpvOpGroupUMax = 270,
+  SpvOpGroupSMax = 271,
+  SpvOpReadPipe = 274,
+  SpvOpWritePipe = 275,
+  SpvOpReservedReadPipe = 276,
+  SpvOpReservedWritePipe = 277,
+  SpvOpReserveReadPipePackets = 278,
+  SpvOpReserveWritePipePackets = 279,
+  SpvOpCommitReadPipe = 280,
+  SpvOpCommitWritePipe = 281,
+  SpvOpIsValidReserveId = 282,
+  SpvOpGetNumPipePackets = 283,
+  SpvOpGetMaxPipePackets = 284,
+  SpvOpGroupReserveReadPipePackets = 285,
+  SpvOpGroupReserveWritePipePackets = 286,
+  SpvOpGroupCommitReadPipe = 287,
+  SpvOpGroupCommitWritePipe = 288,
+  SpvOpEnqueueMarker = 291,
+  SpvOpEnqueueKernel = 292,
+  SpvOpGetKernelNDrangeSubGroupCount = 293,
+  SpvOpGetKernelNDrangeMaxSubGroupSize = 294,
+  SpvOpGetKernelWorkGroupSize = 295,
+  SpvOpGetKernelPreferredWorkGroupSizeMultiple = 296,
+  SpvOpRetainEvent = 297,
+  SpvOpReleaseEvent = 298,
+  SpvOpCreateUserEvent = 299,
+  SpvOpIsValidEvent = 300,
+  SpvOpSetUserEventStatus = 301,
+  SpvOpCaptureEventProfilingInfo = 302,
+  SpvOpGetDefaultQueue = 303,
+  SpvOpBuildNDRange = 304,
+  SpvOpImageSparseSampleImplicitLod = 305,
+  SpvOpImageSparseSampleExplicitLod = 306,
+  SpvOpImageSparseSampleDrefImplicitLod = 307,
+  SpvOpImageSparseSampleDrefExplicitLod = 308,
+  SpvOpImageSparseSampleProjImplicitLod = 309,
+  SpvOpImageSparseSampleProjExplicitLod = 310,
+  SpvOpImageSparseSampleProjDrefImplicitLod = 311,
+  SpvOpImageSparseSampleProjDrefExplicitLod = 312,
+  SpvOpImageSparseFetch = 313,
+  SpvOpImageSparseGather = 314,
+  SpvOpImageSparseDrefGather = 315,
+  SpvOpImageSparseTexelsResident = 316,
+  SpvOpNoLine = 317,
+  SpvOpAtomicFlagTestAndSet = 318,
+  SpvOpAtomicFlagClear = 319,
+  SpvOpImageSparseRead = 320,
+  SpvOpDecorateId = 332,
+  SpvOpSubgroupBallotKHR = 4421,
+  SpvOpSubgroupFirstInvocationKHR = 4422,
+  SpvOpSubgroupAllKHR = 4428,
+  SpvOpSubgroupAnyKHR = 4429,
+  SpvOpSubgroupAllEqualKHR = 4430,
+  SpvOpSubgroupReadInvocationKHR = 4432,
+  SpvOpGroupIAddNonUniformAMD = 5000,
+  SpvOpGroupFAddNonUniformAMD = 5001,
+  SpvOpGroupFMinNonUniformAMD = 5002,
+  SpvOpGroupUMinNonUniformAMD = 5003,
+  SpvOpGroupSMinNonUniformAMD = 5004,
+  SpvOpGroupFMaxNonUniformAMD = 5005,
+  SpvOpGroupUMaxNonUniformAMD = 5006,
+  SpvOpGroupSMaxNonUniformAMD = 5007,
+  SpvOpFragmentMaskFetchAMD = 5011,
+  SpvOpFragmentFetchAMD = 5012,
+  SpvOpSubgroupShuffleINTEL = 5571,
+  SpvOpSubgroupShuffleDownINTEL = 5572,
+  SpvOpSubgroupShuffleUpINTEL = 5573,
+  SpvOpSubgroupShuffleXorINTEL = 5574,
+  SpvOpSubgroupBlockReadINTEL = 5575,
+  SpvOpSubgroupBlockWriteINTEL = 5576,
+  SpvOpSubgroupImageBlockReadINTEL = 5577,
+  SpvOpSubgroupImageBlockWriteINTEL = 5578,
+  SpvOpDecorateStringGOOGLE = 5632,
+  SpvOpMemberDecorateStringGOOGLE = 5633,
+  SpvOpMax = 0x7fffffff,
 } SpvOp;
 
 
@@ -1642,8 +1642,8 @@ static uint32_t
 SPIRV_ComputeTypeSize(SPIRV_ID* ids, uint32_t id, uint32_t current_size/*for alignment*/)
 {
 #define ALIGN_MASK(number, mask) (((number)+(mask))&~(mask))
-/** Align a number to alignment.
-    NOTE: alignment must be a power of 2. */
+  /** Align a number to alignment.
+      NOTE: alignment must be a power of 2. */
 #define ALIGN_TO(number, alignment) ALIGN_MASK(number, (alignment)-1)
   // NOTE about alignment: https://stackoverflow.com/a/45641579
   uint32_t offset = 0, alignment = 0;
@@ -1655,7 +1655,7 @@ SPIRV_ComputeTypeSize(SPIRV_ID* ids, uint32_t id, uint32_t current_size/*for ali
       uint32_t member_size = SPIRV_ComputeTypeSize(ids, ids[id].data.val_struct.memberTypes[typeId], offset);
       offset += member_size;
       if (member_size > alignment)
-        alignment = member_size;
+	alignment = member_size;
     }
     break;
   case SpvOpTypeArray:
@@ -1737,11 +1737,11 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
       assert(word_count >= 3);
       switch (ins[2]) {
       case SpvExecutionModeLocalSize:
-        assert(word_count == 6);
-        shader->localX = ins[3];
-        shader->localY = ins[4];
-        shader->localZ = ins[5];
-        break;
+	assert(word_count == 6);
+	shader->localX = ins[3];
+	shader->localY = ins[4];
+	shader->localZ = ins[5];
+	break;
       }
       break;
     case SpvOpDecorate:
@@ -1750,20 +1750,20 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
       assert(ins[1] < id_bound);
       switch (ins[2]) {
       case SpvDecorationDescriptorSet:
-        assert(word_count == 4);
-        ids[ins[1]].data.binding.set = ins[3];
-        break;
+	assert(word_count == 4);
+	ids[ins[1]].data.binding.set = ins[3];
+	break;
       case SpvDecorationBinding:
-        assert(word_count == 4);
-        ids[ins[1]].data.binding.binding = ins[3];
-        break;
+	assert(word_count == 4);
+	ids[ins[1]].data.binding.binding = ins[3];
+	break;
       case SpvDecorationBlock:
       case SpvDecorationBufferBlock:
-        ids[ins[1]].data.val_struct.structType = ins[2];
-        break;
+	ids[ins[1]].data.val_struct.structType = ins[2];
+	break;
       case SpvDecorationInputAttachmentIndex:
-        ids[ins[1]].data.binding.inputAttachmentIndex = ins[3];
-        break;
+	ids[ins[1]].data.binding.inputAttachmentIndex = ins[3];
+	break;
       }
       break;
     case SpvOpTypeStruct:
@@ -1845,44 +1845,44 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
     SPIRV_ID* id = &ids[i];
 
     if (id->opcode == SpvOpVariable &&
-        (id->data.binding.storageClass == SpvStorageClassUniform ||
-         id->data.binding.storageClass == SpvStorageClassUniformConstant ||
-         id->data.binding.storageClass == SpvStorageClassStorageBuffer)) {
+	(id->data.binding.storageClass == SpvStorageClassUniform ||
+	 id->data.binding.storageClass == SpvStorageClassUniformConstant ||
+	 id->data.binding.storageClass == SpvStorageClassStorageBuffer)) {
       // process uniform
       assert(id->data.binding.set < LIDA_GFX_SHADER_MAX_SETS &&
-             "descriptor set number is bigger than max value");
+	     "descriptor set number is bigger than max value");
       if (id->data.binding.set+1 > shader->set_count)
-        shader->set_count = id->data.binding.set+1;
+	shader->set_count = id->data.binding.set+1;
       assert(id->data.binding.binding < LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET &&
-             "descriptor binding number is bigger than max value");
+	     "descriptor binding number is bigger than max value");
       assert(ids[id->data.binding.typeId].opcode == SpvOpTypePointer);
       Binding_Set_Desc* set = &shader->sets[id->data.binding.set];
       VkDescriptorType* ds_type = &set->bindings[set->binding_count].descriptorType;
       switch (ids[ids[id->data.binding.typeId].data.binding.typeId].opcode) {
       case SpvOpTypeStruct:
-        switch (ids[ids[id->data.binding.typeId].data.binding.typeId].data.val_struct.structType) {
-        case SpvDecorationBlock:
-          *ds_type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-          break;
-        case SpvDecorationBufferBlock:
-          *ds_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-          break;
-        default: break;
-        }
-        break;
+	switch (ids[ids[id->data.binding.typeId].data.binding.typeId].data.val_struct.structType) {
+	case SpvDecorationBlock:
+	  *ds_type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	  break;
+	case SpvDecorationBufferBlock:
+	  *ds_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	  break;
+	default: break;
+	}
+	break;
       case SpvOpTypeImage:
-        // TODO: support input attachments
-        *ds_type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        break;
+	// TODO: support input attachments
+	*ds_type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	break;
       case SpvOpTypeSampler:
-        *ds_type = VK_DESCRIPTOR_TYPE_SAMPLER;
-        break;
+	*ds_type = VK_DESCRIPTOR_TYPE_SAMPLER;
+	break;
       case SpvOpTypeSampledImage:
-        *ds_type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        break;
+	*ds_type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	break;
       default:
-        assert(0 && "Unknown resource type");
-        break;
+	assert(0 && "Unknown resource type");
+	break;
       }
 
       set->bindings[set->binding_count].binding = id->data.binding.binding;
@@ -1890,13 +1890,13 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
       set->bindings[set->binding_count].stageFlags = shader->stages;
       set->binding_count++;
     } else if (id->opcode == SpvOpVariable &&
-               id->data.binding.storageClass == SpvStorageClassPushConstant) {
+	       id->data.binding.storageClass == SpvStorageClassPushConstant) {
       // process push constant
       assert(ids[id->data.binding.typeId].data.binding.storageClass == SpvStorageClassPushConstant);
       shader->ranges[shader->range_count] = (VkPushConstantRange) {
-        .stageFlags = shader->stages,
-        .offset = 0,
-        .size = SPIRV_ComputeTypeSize(ids, ids[id->data.binding.typeId].data.binding.typeId, 0),
+	.stageFlags = shader->stages,
+	.offset = 0,
+	.size = SPIRV_ComputeTypeSize(ids, ids[id->data.binding.typeId].data.binding.typeId, 0),
       };
       shader->range_count++;
     }
@@ -1911,13 +1911,13 @@ ReflectSPIRV(const uint32_t* code, uint32_t size, Shader_Reflect* shader)
 
 static VkBool32
 vk_debug_log_callback(VkDebugReportFlagsEXT flags,
-                      VkDebugReportObjectTypeEXT obj_type,
-                      uint64_t obj,
-                      size_t location,
-                      int32_t code,
-                      const char* layer_prefix,
-                      const char* msg,
-                      void* user_data)
+		      VkDebugReportObjectTypeEXT obj_type,
+		      uint64_t obj,
+		      size_t location,
+		      int32_t code,
+		      const char* layer_prefix,
+		      const char* msg,
+		      void* user_data)
 {
   (void)flags;
   (void)obj_type;
@@ -1928,7 +1928,7 @@ vk_debug_log_callback(VkDebugReportFlagsEXT flags,
     LOG_ERROR("[Vulkan:%d: %s]: %s", code, layer_prefix, msg);
     return 0;
   } else if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) ||
-             (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)) {
+	     (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)) {
     LOG_WARN("[Vulkan:%d: %s]: %s", code, layer_prefix, msg);
     return 1;
   } else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
@@ -1971,9 +1971,9 @@ get_instance_extensions(const GFX_Init_Info* info)
 
     for (uint32_t j = 0; j < num_available_instance_extensions; j++) {
       if (strcmp(required_extensions[i].name, available_instance_extensions[j].extensionName) == 0) {
-        push_mem(sizeof(const char*));
-        g.enabled_instance_extensions[g.num_enabled_instance_extensions++] = required_extensions[i].name;
-        break;
+	push_mem(sizeof(const char*));
+	g.enabled_instance_extensions[g.num_enabled_instance_extensions++] = required_extensions[i].name;
+	break;
       }
     }
   }
@@ -1986,14 +1986,14 @@ get_device_extensions(const GFX_Init_Info* info)
   uint32_t num_available_device_extensions;
 
   VkResult err = vkEnumerateDeviceExtensionProperties(g.physical_device, NULL,
-                                             &num_available_device_extensions, NULL);
+						      &num_available_device_extensions, NULL);
   if (err != VK_SUCCESS) {
     LOG_ERROR("failed to enumerate device extensions with error %d", err);
   }
   available_device_extensions = alloca(num_available_device_extensions * sizeof(VkExtensionProperties));
   err = vkEnumerateDeviceExtensionProperties(g.physical_device, NULL,
-                                             &num_available_device_extensions,
-                                             available_device_extensions);
+					     &num_available_device_extensions,
+					     available_device_extensions);
 
   // for (uint32_t i = 0; i < num_available_device_extensions; i++) {
   //   LOG_INFO("%s---", available_device_extensions[i].extensionName);
@@ -2015,10 +2015,10 @@ get_device_extensions(const GFX_Init_Info* info)
     int found = 0;
     for (uint32_t j = 0; j < num_available_device_extensions; j++) {
       if (strcmp(required_extensions[i].name, available_device_extensions[j].extensionName) == 0) {
-        push_mem(sizeof(const char*));
-        g.enabled_device_extensions[g.num_enabled_device_extensions++] = required_extensions[i].name;
-        found = 1;
-        break;
+	push_mem(sizeof(const char*));
+	g.enabled_device_extensions[g.num_enabled_device_extensions++] = required_extensions[i].name;
+	found = 1;
+	break;
       }
     }
     if (found == 0) {
@@ -2150,11 +2150,11 @@ create_render_pass(const GFX_Attachment_Info* attachments, uint32_t count)
     };
     VkImageLayout work_layout = (VkImageLayout)attachments[i].work_layout;
     VkAttachmentReference temp = (VkAttachmentReference) {
-        .attachment = i,
-        .layout = work_layout,
+      .attachment = i,
+      .layout = work_layout,
     };
     if (work_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL ||
-        work_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+	work_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
       has_depth = 1;
       depth_reference = temp;
     } else {
@@ -2295,28 +2295,28 @@ merge_shader_reflects(Shader_Reflect* dst, const Shader_Reflect** shaders, uint3
       uint32_t* pCount = &dst->sets[i].binding_count;
       uint32_t old_count = *pCount;
       for (uint32_t j = 0; j < set->binding_count; j++) {
-        int found = 0;
-        for (uint32_t k = 0; old_count; k++) {
-          VkDescriptorSetLayoutBinding* binding = &dst->sets[j].bindings[k];
-          if (binding->binding == set->bindings[j].binding) {
-            if (binding->descriptorType != set->bindings[j].descriptorType ||
-                binding->descriptorCount != set->bindings[j].descriptorCount) {
-              LOG_WARN("shader merge error: different uniforms have the same binding number");
-            }
-            binding->stageFlags |= set->bindings[j].stageFlags;
-            found = 1;
-            break;
-          }
-        }
-        if (!found) {
-          // add binding
-          assert(*pCount < LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET &&
-                 "shader reflect merge: binding number overflow, "
-                 "try to use less number of bindings per set");
-          memcpy(&dst->sets[i].bindings[*pCount], &set->bindings[j],
-                 sizeof(VkDescriptorSetLayoutBinding));
-          (*pCount)++;
-        }
+	int found = 0;
+	for (uint32_t k = 0; old_count; k++) {
+	  VkDescriptorSetLayoutBinding* binding = &dst->sets[j].bindings[k];
+	  if (binding->binding == set->bindings[j].binding) {
+	    if (binding->descriptorType != set->bindings[j].descriptorType ||
+		binding->descriptorCount != set->bindings[j].descriptorCount) {
+	      LOG_WARN("shader merge error: different uniforms have the same binding number");
+	    }
+	    binding->stageFlags |= set->bindings[j].stageFlags;
+	    found = 1;
+	    break;
+	  }
+	}
+	if (!found) {
+	  // add binding
+	  assert(*pCount < LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET &&
+		 "shader reflect merge: binding number overflow, "
+		 "try to use less number of bindings per set");
+	  memcpy(&dst->sets[i].bindings[*pCount], &set->bindings[j],
+		 sizeof(VkDescriptorSetLayoutBinding));
+	  (*pCount)++;
+	}
       }
     }
     for (uint32_t i = 0; i < src->range_count; i++) {
@@ -2324,18 +2324,18 @@ merge_shader_reflects(Shader_Reflect* dst, const Shader_Reflect** shaders, uint3
       int found = 0;
       rrange = &src->ranges[i];
       for (uint32_t j = 0; j < dst->range_count; j++) {
-        lrange = &dst->ranges[j];
-        if (lrange->offset == rrange->offset &&
-            lrange->size == rrange->size) {
-          found = 1;
-          break;
-        }
+	lrange = &dst->ranges[j];
+	if (lrange->offset == rrange->offset &&
+	    lrange->size == rrange->size) {
+	  found = 1;
+	  break;
+	}
       }
       if (!found) {
-        assert(dst->range_count < LIDA_GFX_SHADER_MAX_RANGES &&
-               "shader reflect merge: push constant number overflow");
-        memcpy(&dst->ranges[dst->range_count], rrange, sizeof(VkPushConstantRange));
-        dst->range_count++;
+	assert(dst->range_count < LIDA_GFX_SHADER_MAX_RANGES &&
+	       "shader reflect merge: push constant number overflow");
+	memcpy(&dst->ranges[dst->range_count], rrange, sizeof(VkPushConstantRange));
+	dst->range_count++;
       }
     }
   }
@@ -2363,7 +2363,7 @@ eq_ds_layout(const void* l, const void* r)
   if (left->num_bindings != right->num_bindings)
     return 0;
   return memcmp(left->bindings, right->bindings,
-                left->num_bindings * sizeof(VkDescriptorSetLayoutBinding)) == 0;
+		left->num_bindings * sizeof(VkDescriptorSetLayoutBinding)) == 0;
 }
 
 static void
@@ -2379,7 +2379,7 @@ create_ds_layout(const VkDescriptorSetLayoutBinding* bindings, uint32_t num_bind
   int flag;
   if (num_bindings > LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET) {
     LOG_ERROR("max number of bindings per descriptor set is configured to be %d",
-              LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET);
+	      LIDA_GFX_SHADER_MAX_BINDINGS_PER_SET);
     return NULL;
   }
   // TODO: sort bindings
@@ -2542,7 +2542,7 @@ create_swapchain(Window* window)
     // try to pick R8G8B8A8_SRGB with nonlinear color space because it looks good
     // TODO: choose in more smart way
     if (formats[i].format == VK_FORMAT_R8G8B8A8_SRGB &&
-        formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+	formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
       window->format = formats[i];
       break;
     }
@@ -2564,18 +2564,18 @@ create_swapchain(Window* window)
   pop_mem(present_modes);
   if (required_present_mode != window->present_mode) {
     LOG_WARN("Present mode '%d' isn't supported, '%d' was chosen instead",
-             required_present_mode, window->present_mode);
+	     required_present_mode, window->present_mode);
   }
 
   // choose swapchain extent
   if (capabilities.currentExtent.width == UINT32_MAX) {
 #define CLAMP(value, low, high) (((value)<(low))?(low):(((value)>(high))?(high):(value)))
     window->swapchain_extent.width = CLAMP(window->swapchain_extent.width,
-                                             capabilities.minImageExtent.width,
-                                             capabilities.maxImageExtent.height);
+					   capabilities.minImageExtent.width,
+					   capabilities.maxImageExtent.height);
     window->swapchain_extent.height = CLAMP(window->swapchain_extent.height,
-                                              capabilities.minImageExtent.height,
-                                              capabilities.maxImageExtent.height);
+					    capabilities.minImageExtent.height,
+					    capabilities.maxImageExtent.height);
 #undef CLAMP
   } else {
     window->swapchain_extent = capabilities.currentExtent;
@@ -2596,8 +2596,8 @@ create_swapchain(Window* window)
     // supportedCompositeAlpha is a bitmask of VkCompositeAlphaFlagBitsKHR, representing the alpha compositing modes supported by the presentation engine for the surface on the specified device, and at least one bit will be set
     while (flags > 0) {
       if (flags & 1) {
-        window->composite_alpha = 1 << i;
-        break;
+	window->composite_alpha = 1 << i;
+	break;
       }
       flags >>= 1;
       i++;
@@ -2667,14 +2667,14 @@ create_swapchain(Window* window)
     .viewType = VK_IMAGE_VIEW_TYPE_2D,
     .format = window->format.format,
     .components = { .r = VK_COMPONENT_SWIZZLE_R,
-                    .g = VK_COMPONENT_SWIZZLE_G,
-                    .b = VK_COMPONENT_SWIZZLE_B,
-                    .a = VK_COMPONENT_SWIZZLE_A,},
+		    .g = VK_COMPONENT_SWIZZLE_G,
+		    .b = VK_COMPONENT_SWIZZLE_B,
+		    .a = VK_COMPONENT_SWIZZLE_A,},
     .subresourceRange = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                          .baseMipLevel = 0,
-                          .levelCount = 1,
-                          .baseArrayLayer = 0,
-                          .layerCount = 1 },
+			  .baseMipLevel = 0,
+			  .levelCount = 1,
+			  .baseArrayLayer = 0,
+			  .layerCount = 1 },
   };
   VkFramebufferCreateInfo framebuffer_info = {
     .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -2716,7 +2716,7 @@ create_window_frames(Window* window)
   }
   VkSemaphoreCreateInfo semaphore_info = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
   VkFenceCreateInfo fence_info = { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                                   .flags = VK_FENCE_CREATE_SIGNALED_BIT };
+				   .flags = VK_FENCE_CREATE_SIGNALED_BIT };
   for (int i = 0; i < 2; i++) {
     window->frames[i].cmd = command_buffers[i];
     err = vkCreateSemaphore(g.logical_device, &semaphore_info, NULL, &window->frames[i].image_available);
@@ -2768,16 +2768,16 @@ merge_memory_requirements(const VkMemoryRequirements* requirements, uint32_t cou
 
 static VkResult
 allocate_memory_block(Memory_Block* memory, VkDeviceSize size,
-                      VkMemoryPropertyFlags flags, uint32_t memory_type_bits)
+		      VkMemoryPropertyFlags flags, uint32_t memory_type_bits)
 {
   uint32_t best_type = 0;
   for (uint32_t i = 0; i < g.memory_properties.memoryTypeCount; i++) {
     if ((g.memory_properties.memoryTypes[i].propertyFlags & flags) == flags &&
-        (1 << i) & memory_type_bits) {
+	(1 << i) & memory_type_bits) {
       uint32_t a = g.memory_properties.memoryTypes[i].propertyFlags;
       uint32_t b = g.memory_properties.memoryTypes[best_type].propertyFlags;
       if (count_set_bits(a&flags) > count_set_bits(b&flags))
-        best_type = i;
+	best_type = i;
     }
   }
   VkMemoryAllocateInfo allocate_info = {
@@ -2826,7 +2826,7 @@ eat_memory_block(Memory_Block* memory, const VkMemoryRequirements* requirements)
 {
   if (((1 << memory->type) & requirements->memoryTypeBits) == 0) {
     LOG_ERROR("buffer cannot be bound to memory. bits %u are needed, but bit %u is available",
-              requirements->memoryTypeBits, memory->type);
+	      requirements->memoryTypeBits, memory->type);
     return VK_ERROR_OUT_OF_DEVICE_MEMORY;
   }
   memory->offset = ALIGN_TO(memory->offset, requirements->alignment);
@@ -2871,8 +2871,8 @@ destroy_buffer(Buffer* buffer)
 
 static VkResult
 bind_buffer_to_memory(Memory_Block* memory, Buffer* buffer,
-                      const VkMemoryRequirements* requirements,
-                      VkMappedMemoryRange* mapped_range)
+		      const VkMemoryRequirements* requirements,
+		      VkMappedMemoryRange* mapped_range)
 {
   VkResult err = eat_memory_block(memory, requirements);
   if (err != VK_SUCCESS) {
@@ -2940,7 +2940,7 @@ destroy_image(Image* image)
 
 static VkResult
 bind_image_to_memory(Memory_Block* memory, Image* image,
-                     const VkMemoryRequirements* requirements)
+		     const VkMemoryRequirements* requirements)
 {
   VkResult err = eat_memory_block(memory, requirements);
   if (err != VK_SUCCESS) {
@@ -2963,7 +2963,7 @@ _Static_assert(sizeof(Texture) <= sizeof(GFX_Texture), "internal error: adjust s
 
 static VkResult
 create_texture(Texture* texture, Image* image, uint32_t first_mip, uint32_t first_layer,
-               uint32_t num_mips, uint32_t num_layers)
+	       uint32_t num_mips, uint32_t num_layers)
 {
   VkComponentMapping components = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
   VkImageSubresourceRange subresource = {
@@ -3037,7 +3037,7 @@ create_framebuffer(const Render_Pass* render_pass, const GFX_Texture* attachment
 {
   if (num_attachments > LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS) {
     LOG_WARN("number of attachments(%u) is bigger than maximum value(%u)",
-             num_attachments, LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS);
+	     num_attachments, LIDA_GFX_RENDER_PASS_MAX_ATTACHMENTS);
     return NULL;
   }
   Framebuffer framebuffer = {
@@ -3258,8 +3258,8 @@ gfx_init(const GFX_Init_Info* info)
   vkGetPhysicalDeviceQueueFamilyProperties(g.physical_device, &g.num_queue_families, NULL);
   g.queue_families = push_mem(g.num_queue_families * sizeof(VkQueueFamilyProperties));
   vkGetPhysicalDeviceQueueFamilyProperties(g.physical_device,
-                                           &g.num_queue_families,
-                                           g.queue_families);
+					   &g.num_queue_families,
+					   g.queue_families);
   for (uint32_t i = 0; i < count; i++) {
     if (g.queue_families[0].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
       g.graphics_queue_family = i;
@@ -3416,9 +3416,9 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
     modules[2*i] = vertex_shader->module;
     stages[2*i] = (VkPipelineShaderStageCreateInfo) {
       .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage  = VK_SHADER_STAGE_VERTEX_BIT,
-        .module = modules[2*i],
-        .pName  = "main"
+      .stage  = VK_SHADER_STAGE_VERTEX_BIT,
+      .module = modules[2*i],
+      .pName  = "main"
     };
     // load fragment shader
     if (descs[i].fragment_shader) {
@@ -3427,10 +3427,10 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
       reflects[1] = &fragment_shader->reflect;
       modules[2*i+1] = fragment_shader->module;
       stages[2*i+1] = (VkPipelineShaderStageCreateInfo) {
-        .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .module = modules[2*i+1],
-        .pName  = "main"
+	.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+	.stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
+	.module = modules[2*i+1],
+	.pName  = "main"
       };
     }
     // create pipeline layout
@@ -3531,7 +3531,7 @@ gfx_create_graphics_pipelines(GFX_Pipeline* pipelines, uint32_t count, const GFX
     };
   }
   VkResult err = vkCreateGraphicsPipelines(g.logical_device, VK_NULL_HANDLE, // TODO: pipeline caches
-                                           count, create_infos, VK_NULL_HANDLE, handles);
+					   count, create_infos, VK_NULL_HANDLE, handles);
   if (err != VK_SUCCESS) {
     LOG_ERROR("failed to create some of pipelines with error %s", to_string_VkResult(err));
     return -1;
@@ -3560,16 +3560,16 @@ gfx_create_compute_pipelines(GFX_Pipeline* pipelines, uint32_t count, const char
     create_infos[i] = (VkComputePipelineCreateInfo) {
       .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
       .stage = (VkPipelineShaderStageCreateInfo) {
-        .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
-        .module = modules[i],
-        .pName  = "main"
+	.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+	.stage  = VK_SHADER_STAGE_COMPUTE_BIT,
+	.module = modules[i],
+	.pName  = "main"
       },
       .layout = layout->handle
     };
   }
   VkResult err = vkCreateComputePipelines(g.logical_device, VK_NULL_HANDLE, // TODO: pipeline caches
-                                          count, create_infos, VK_NULL_HANDLE, handles);
+					  count, create_infos, VK_NULL_HANDLE, handles);
   if (err != VK_SUCCESS) {
     LOG_ERROR("failed to create some of pipelines with error %s", to_string_VkResult(err));
     return -1;
@@ -3651,7 +3651,7 @@ gfx_resize_window(GFX_Window* win, uint32_t* width, uint32_t* height)
 
   VkSurfaceCapabilitiesKHR surface_capabilities;
   VkResult err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g.physical_device, window->surface,
-                                                           &surface_capabilities);
+							   &surface_capabilities);
   if (err != VK_SUCCESS) {
     LOG_WARN("failed to update surface capabilities");
   }
@@ -3701,11 +3701,11 @@ gfx_swap_buffers(GFX_Window* win)
   Window* window = (Window*)win;
   Window_Frame* frame = &window->frames[window->frame_counter & 1];
   VkResult err = vkAcquireNextImageKHR(g.logical_device,
-                                       window->swapchain,
-                                       UINT64_MAX,
-                                       frame->image_available,
-                                       VK_NULL_HANDLE,
-                                       &window->current_image);
+				       window->swapchain,
+				       UINT64_MAX,
+				       frame->image_available,
+				       VK_NULL_HANDLE,
+				       &window->current_image);
   switch (err)
     {
     case VK_SUCCESS:
@@ -3729,7 +3729,7 @@ gfx_submit_and_present(GFX_Window* win)
   VkResult err;
   // wait till commands from previous frame are done, so we can safely use GPU resources
   err = vkWaitForFences(g.logical_device, 1, &window->resources_available_fence,
-                        VK_TRUE, UINT64_MAX);
+			VK_TRUE, UINT64_MAX);
   if (err != VK_SUCCESS) {
     LOG_ERROR("failed to wait for fence with error %s", to_string_VkResult(err));
     return err;
@@ -3789,7 +3789,7 @@ gfx_begin_main_pass(GFX_Window* win)
   Window* window = (Window*)win;
   Window_Frame* frame = &window->frames[window->frame_counter % 2];
   VkRect2D render_area = { .offset = {0, 0},
-                           .extent = window->swapchain_extent };
+			   .extent = window->swapchain_extent };
   VkRenderPassBeginInfo begin_info = {
     .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
     .renderPass      = window->render_pass->render_pass,
@@ -3820,7 +3820,7 @@ gfx_begin_render_pass(GFX_Render_Pass* render_pass, const GFX_Texture* attachmen
   }
   // TODO: option to specify render area
   VkRect2D render_area = { .offset = {0, 0},
-                           .extent = {framebuffer->width, framebuffer->height} };
+			   .extent = {framebuffer->width, framebuffer->height} };
   VkRenderPassBeginInfo begin_info = {
     .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
     .renderPass      = ((Render_Pass*)render_pass)->render_pass,
@@ -3868,9 +3868,9 @@ gfx_bind_descriptor_sets(const GFX_Descriptor_Set* descriptor_sets, uint32_t ds_
 {
   Pipeline* pipeline = (Pipeline*)g.current_pipeline;
   vkCmdBindDescriptorSets(g.current_cmd, pipeline->bind_point,
-                          pipeline->layout, 0,
-                          ds_count, (const VkDescriptorSet*)descriptor_sets,
-                          0, NULL);
+			  pipeline->layout, 0,
+			  ds_count, (const VkDescriptorSet*)descriptor_sets,
+			  0, NULL);
 }
 
 void
@@ -3879,7 +3879,7 @@ gfx_push_constants(const void* push_constant, uint32_t push_constant_size)
   Pipeline* pipeline = (Pipeline*)g.current_pipeline;
   VkShaderStageFlags stage = (pipeline->bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS) ? GFX_STAGE_VERTEX : GFX_STAGE_COMPUTE;
   vkCmdPushConstants(g.current_cmd, pipeline->layout, stage,
-                     0, push_constant_size, push_constant);
+		     0, push_constant_size, push_constant);
 }
 
 void
@@ -3902,7 +3902,7 @@ gfx_dispatch(uint32_t x, uint32_t y, uint32_t z)
 
 void
 gfx_barrier(GFX_Pipeline_Stage src_stage, GFX_Pipeline_Stage dst_stage,
-            const GFX_Image_Barrier* barriers, uint32_t count)
+	    const GFX_Image_Barrier* barriers, uint32_t count)
 {
   if (count == 0) {
     VkMemoryBarrier barrier = {
@@ -3911,10 +3911,10 @@ gfx_barrier(GFX_Pipeline_Stage src_stage, GFX_Pipeline_Stage dst_stage,
       .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT,
     };
     vkCmdPipelineBarrier(g.current_cmd, src_stage, dst_stage,
-                         0,
-                         1, &barrier,
-                         0, NULL,
-                         0, NULL);
+			 0,
+			 1, &barrier,
+			 0, NULL,
+			 0, NULL);
     return;
   }
   // TODO: batch barriers
@@ -3929,20 +3929,20 @@ gfx_barrier(GFX_Pipeline_Stage src_stage, GFX_Pipeline_Stage dst_stage,
       .newLayout = (VkImageLayout)barriers[i].new_layout,
       .image = image->handle,
       .subresourceRange = (VkImageSubresourceRange) {
-        // TODO: pick aspect based on image's format
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .baseMipLevel = barriers[i].mip_level,
-        .levelCount = barriers[i].mip_count,
-        .baseArrayLayer = barriers[i].array_layer,
-        .layerCount = barriers[i].layer_count
+	// TODO: pick aspect based on image's format
+	.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	.baseMipLevel = barriers[i].mip_level,
+	.levelCount = barriers[i].mip_count,
+	.baseArrayLayer = barriers[i].array_layer,
+	.layerCount = barriers[i].layer_count
       },
     };
   }
   vkCmdPipelineBarrier(g.current_cmd, src_stage, dst_stage,
-                       0,       // in my experience dependency flags don't matter at all
-                       0, NULL,
-                       0, NULL,
-                       count, image_barriers);
+		       0,       // in my experience dependency flags don't matter at all
+		       0, NULL,
+		       0, NULL,
+		       count, image_barriers);
 }
 
 void
@@ -4061,33 +4061,74 @@ gfx_bind_index_buffer(GFX_Buffer* buff, const uint64_t offset)
 }
 
 void
-gfx_copy_buffer_to_image(GFX_Buffer* buf, GFX_Image* img,
-                         uint32_t x, uint32_t y, uint32_t z,
-                         uint32_t w, uint32_t h, uint32_t d)
+gfx_copy_buffer_to_image_with_offset(GFX_Buffer* buf, GFX_Image* img, uint64_t offset,
+			 uint32_t x, uint32_t y, uint32_t z,
+			 uint32_t w, uint32_t h, uint32_t d)
 {
   // TODO: specify subregion of image
   Buffer* buffer = (Buffer*)buf;
   Image* image = (Image*)img;
+  VkImageSubresourceLayers subresource = {
+    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    .mipLevel = 0,
+    .baseArrayLayer = 0,
+    .layerCount = 1,
+  };
   VkBufferImageCopy copy_info = {
-    .bufferOffset = 0,
+    .bufferOffset = offset,
     .bufferRowLength = 0,
     .bufferImageHeight = 0,
-    .imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+    .imageSubresource = subresource,
     .imageOffset = (VkOffset3D) {x, y, z},
     .imageExtent = (VkExtent3D) { w, h, d }
   };
   vkCmdCopyBufferToImage(g.current_cmd, buffer->handle, image->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                         1, &copy_info);
+			 1, &copy_info);
+
   // LOG_DEBUG("copied %u pixels", w*h*d);
+}
+
+void
+gfx_copy_buffer_to_image(GFX_Buffer* buf, GFX_Image* img,
+			 uint32_t x, uint32_t y, uint32_t z,
+			 uint32_t w, uint32_t h, uint32_t d)
+{
+  gfx_copy_buffer_to_image_with_offset(buf, img, 0, x, y, z, w, h, d);
+}
+
+void
+gfx_copy_image_to_buffer(GFX_Image* img, GFX_Buffer* buf,
+			 uint32_t x, uint32_t y, uint32_t z,
+			 uint32_t w, uint32_t h, uint32_t d)
+{
+  // TODO: specify subregion of image
+  Buffer* buffer = (Buffer*)buf;
+  Image* image = (Image*)img;
+  VkImageSubresourceLayers subresource = {
+    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    .mipLevel = 0,
+    .baseArrayLayer = 0,
+    .layerCount = 1,
+  };
+  VkBufferImageCopy region = {
+    .bufferOffset = 0,
+    .bufferRowLength = 0,
+    .bufferImageHeight = 0,
+    .imageSubresource = subresource,
+    .imageOffset = (VkOffset3D) {x, y, z},
+    .imageExtent = (VkExtent3D) { w, h, d }
+  };
+  vkCmdCopyImageToBuffer(g.current_cmd, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			 buffer->handle, 1, &region);
 }
 
 int
 gfx_create_image(GFX_Image* image, GFX_Image_Usage usage,
-                 uint32_t width, uint32_t height, uint32_t depth,
-                 GFX_Format format, uint32_t mips, uint32_t levels)
+		 uint32_t width, uint32_t height, uint32_t depth,
+		 GFX_Format format, uint32_t mips, uint32_t levels)
 {
   return create_image((Image*)image, usage, (VkExtent3D){ width, height, depth },
-                      format, mips, levels);
+		      format, mips, levels);
 }
 
 void
@@ -4107,11 +4148,11 @@ gfx_get_image_extent(GFX_Image* img, uint32_t* width, uint32_t* height, uint32_t
 
 int
 gfx_create_texture(GFX_Texture* texture, const GFX_Image* image,
-                   uint32_t first_mip, uint32_t first_layer,
-                   uint32_t num_mips, uint32_t num_layers)
+		   uint32_t first_mip, uint32_t first_layer,
+		   uint32_t num_mips, uint32_t num_layers)
 {
   return create_texture((Texture*)texture, (Image*)image,
-                        first_mip, first_layer, num_mips, num_layers);
+			first_mip, first_layer, num_mips, num_layers);
 }
 
 void
@@ -4122,8 +4163,8 @@ gfx_destroy_texture(GFX_Texture* texture)
 
 int
 gfx_allocate_descriptor_sets(GFX_Descriptor_Set* sets, uint32_t num_sets,
-                             const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
-                             int resetable)
+			     const GFX_Descriptor_Set_Binding* bindings, uint32_t num_bindings,
+			     int resetable)
 {
   VkDescriptorSetLayoutBinding* bindings_vk = alloca(num_bindings * sizeof(VkDescriptorSetLayoutBinding));
   for (uint32_t i = 0; i < num_bindings; i++) {
@@ -4183,7 +4224,7 @@ gfx_descriptor_buffer(GFX_Descriptor_Set set, uint32_t binding, GFX_Descriptor_T
 }
 
 void gfx_descriptor_sampled_texture(GFX_Descriptor_Set set, uint32_t binding,
-                                    const GFX_Texture* tex, GFX_Image_Layout layout, int is_linear_filter, GFX_Sampler_Address_Mode mode)
+				    const GFX_Texture* tex, GFX_Image_Layout layout, int is_linear_filter, GFX_Sampler_Address_Mode mode)
 {
   assert(g.ds_writes_offset < MAX_DS_WRITES);
   const Texture* texture = (const Texture*)tex;
@@ -4230,4 +4271,20 @@ gfx_batch_update_descriptor_sets()
 {
   vkUpdateDescriptorSets(g.logical_device, g.ds_writes_offset, g.ds_writes, 0, NULL);
   g.ds_writes_offset = 0;
+}
+
+void
+gfx_clear_color_image(GFX_Image* img, GFX_Image_Layout layout)
+{
+  VkClearColorValue clear_color = {};
+  clear_color.float32[0] = 0.0f;
+  VkImageSubresourceRange range = {
+    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    .baseMipLevel = 0,
+    .levelCount = 1,
+    .baseArrayLayer = 0,
+    .layerCount = 1
+  };
+  Image* image = (Image*)img;
+  vkCmdClearColorImage(g.current_cmd, image->handle, (VkImageLayout)layout, &clear_color, 1, &range);
 }
